@@ -16,3 +16,9 @@ __pycache__/
 *.pyo
 *.egg-info/
 .eggs/
+
+# Cursor / fichiers locaux IDE
+.cursor/
+
+# Dossiers de travail locaux (non versionnés)
+SENEGEL-WorkFlow/
