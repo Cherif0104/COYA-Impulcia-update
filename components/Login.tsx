@@ -198,7 +198,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
     setForgotPasswordSent(false);
     try {
       const { supabase } = await import('../services/supabaseService');
-      const { getPasswordRecoveryRedirectUrl } = await import('../utils/authRedirect');
+      const { getPasswordRecoveryRedirectUrl } = await import('../utils/authRecoveryUrl');
       const { error: err } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
         redirectTo: getPasswordRecoveryRedirectUrl(),
       });

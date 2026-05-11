@@ -52,7 +52,7 @@ Emplacement : `components/ui/`
 
 - **Login** : split-screen enterprise (branding à gauche + card premium à droite), cohérent avec les docs :
   - `docs/erp-enterprise-audit/NEW DESIGN COYAGE UI/NEW LOGIN PAGE COYA PROMPT`
-- **Récupération mot de passe (après clic lien Supabase)** : plein écran même charte que le login (`components/PasswordRecoveryScreen.tsx`) — confirmation du mot de passe, toggles visibilité, i18n `recovery_*`, abandon = `signOut` + retour vue connexion.
+- **Récupération mot de passe (après clic lien Supabase)** : plein écran même charte que le login (`components/PasswordRecoveryScreen.tsx`) — confirmation du mot de passe, toggles visibilité, i18n `recovery_*`, abandon = `signOut` + retour vue connexion. URL de retour e-mail : **`https://www.coya.pro/auth/recovery`** (constante `AUTH_RECOVERY_CALLBACK_PATH`, à autoriser dans Supabase Redirect URLs).
 - **Loading overlay** : fullscreen cinematic (logo SENEGEL, slogan, progress bar), cohérent avec :
   - `docs/erp-enterprise-audit/NEW DESIGN COYAGE UI/NEW DESIGN COYA OVERLAYE PAGE DE CHARGEMENT`
 

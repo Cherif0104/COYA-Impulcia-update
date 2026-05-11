@@ -83,6 +83,7 @@ import { Button } from './components/ui/Button';
 // FigmaModuleShell est désormais transparent (pas de hero global) — alignement Figma.
 import { getModuleViewComponent } from './viewRegistry';
 import { runWorkflowCycle, WorkflowKpiSnapshot } from './services/workflowEngine';
+import { isAuthRecoveryPathname } from './constants/coyaSite';
 
 /** Vues modules retirées — bookmarks / notifications basculent vers le tableau de bord. */
 const REMOVED_APP_VIEWS = new Set<string>([
@@ -138,8 +139,13 @@ const App: React.FC = () => {
   const hrEmployeeProfileIdFromUrlHydrate =
     typeof window !== 'undefined' ? getEmployeeProfileIdFromUrl() : null;
   const projectIdFromUrlHydrate = typeof window !== 'undefined' ? getProjectIdFromUrl() : null;
+  const authRecoveryFromUrl =
+    typeof window !== 'undefined' && isAuthRecoveryPathname(window.location.pathname);
   // Lien direct `/hr/employees/:id` → workspace salarié ; sinon `?projectId=` / `/projects/:id` → projet.
-  const validInitialView = hrEmployeeProfileIdFromUrlHydrate
+  // `/auth/recovery` (lien e-mail Supabase) → vue connexion pour éviter un flash tableau de bord.
+  const validInitialView = authRecoveryFromUrl
+    ? 'login'
+    : hrEmployeeProfileIdFromUrlHydrate
     ? 'employee_workspace'
     : projectIdFromUrlHydrate
       ? 'project_workspace'
@@ -417,9 +423,27 @@ const App: React.FC = () => {
     return () => { sub.subscription?.unsubscribe(); };
   }, []);
 
+  // Lien e-mail → `/auth/recovery` : éviter que lastView (ex. dashboard) prenne le dessus au prochain chargement.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isAuthRecoveryPathname(window.location.pathname)) return;
+    try {
+      localStorage.setItem('lastView', 'login');
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const clearAuthRecoveryUrlIfPresent = useCallback(() => {
+    if (typeof window !== 'undefined' && isAuthRecoveryPathname(window.location.pathname)) {
+      window.history.replaceState({}, '', `${window.location.origin}/`);
+    }
+  }, []);
+
   const handleRecoveryCompleted = useCallback(() => {
     setShowNewPasswordModal(false);
-  }, []);
+    clearAuthRecoveryUrlIfPresent();
+  }, [clearAuthRecoveryUrlIfPresent]);
 
   const handleRecoveryAbort = useCallback(async () => {
     try {
@@ -429,12 +453,13 @@ const App: React.FC = () => {
     }
     setShowNewPasswordModal(false);
     setCurrentView('login');
+    clearAuthRecoveryUrlIfPresent();
     try {
       localStorage.setItem('lastView', 'login');
     } catch {
       /* ignore */
     }
-  }, [signOut]);
+  }, [signOut, clearAuthRecoveryUrlIfPresent]);
 
   // Handler pour setView qui persiste dans localStorage
   const handleSetView = useCallback((view: string) => {
@@ -1610,7 +1635,7 @@ const App: React.FC = () => {
             entityId: newRecurringInvoice.id,
             actor: user as any,
             metadata: {
-              summary: `${user.name} a créé une facture récurrente (${newRecurringInvoice.name || newRecurringInvoice.id})`,
+              summary: `${user.name} a créé une facture récurrente (${newRecurringInvoice.clientName || newRecurringInvoice.id})`,
               amount: newRecurringInvoice.amount,
               currency: newRecurringInvoice.currencyCode,
               frequency: newRecurringInvoice.frequency
@@ -1630,7 +1655,7 @@ const App: React.FC = () => {
           setRecurringInvoices(prev => prev.map(i => i.id === updated.id ? result : i));
         if (user) {
           const diff = previous
-            ? buildDiff(previous, result, ['name', 'amount', 'currencyCode', 'frequency', 'nextRunDate'])
+            ? buildDiff(previous, result, ['clientName', 'amount', 'currencyCode', 'frequency', 'lastGeneratedDate'])
             : undefined;
           AuditLogService.logAction({
             action: 'update',
@@ -1639,7 +1664,7 @@ const App: React.FC = () => {
             entityId: result.id,
             actor: user as any,
             metadata: {
-              summary: `${user.name} a modifié une facture récurrente (${result.name || result.id})`,
+              summary: `${user.name} a modifié une facture récurrente (${result.clientName || result.id})`,
               diff
             }
           });
@@ -1663,7 +1688,7 @@ const App: React.FC = () => {
             entityId: id,
             actor: user as any,
             metadata: {
-              summary: `${user.name} a supprimé une facture récurrente (${invoiceToDelete.name || invoiceToDelete.id})`,
+              summary: `${user.name} a supprimé une facture récurrente (${invoiceToDelete.clientName || invoiceToDelete.id})`,
               amount: invoiceToDelete.amount,
               currency: invoiceToDelete.currencyCode
             }
@@ -1689,7 +1714,7 @@ const App: React.FC = () => {
             entityId: newRecurringExpense.id,
             actor: user as any,
             metadata: {
-              summary: `${user.name} a créé une dépense récurrente (${newRecurringExpense.name || newRecurringExpense.id})`,
+              summary: `${user.name} a créé une dépense récurrente (${newRecurringExpense.description || newRecurringExpense.id})`,
               amount: newRecurringExpense.amount,
               currency: newRecurringExpense.currencyCode,
               frequency: newRecurringExpense.frequency
@@ -1709,7 +1734,7 @@ const App: React.FC = () => {
           setRecurringExpenses(prev => prev.map(e => e.id === updated.id ? result : e));
         if (user) {
           const diff = previous
-            ? buildDiff(previous, result, ['name', 'amount', 'currencyCode', 'frequency', 'nextRunDate'])
+            ? buildDiff(previous, result, ['description', 'amount', 'currencyCode', 'frequency', 'lastGeneratedDate'])
             : undefined;
           AuditLogService.logAction({
             action: 'update',
@@ -1718,7 +1743,7 @@ const App: React.FC = () => {
             entityId: result.id,
             actor: user as any,
             metadata: {
-              summary: `${user.name} a modifié une dépense récurrente (${result.name || result.id})`,
+              summary: `${user.name} a modifié une dépense récurrente (${result.description || result.id})`,
               diff
             }
           });
@@ -1742,7 +1767,7 @@ const App: React.FC = () => {
             entityId: id,
             actor: user as any,
             metadata: {
-              summary: `${user.name} a supprimé une dépense récurrente (${expenseToDelete.name || expenseToDelete.id})`,
+              summary: `${user.name} a supprimé une dépense récurrente (${expenseToDelete.description || expenseToDelete.id})`,
               amount: expenseToDelete.amount,
               currency: expenseToDelete.currencyCode
             }
@@ -1906,7 +1931,7 @@ const App: React.FC = () => {
             entityId: newExpense.id,
             actor: user as any,
             metadata: {
-              summary: `${user.name} a enregistré une dépense ${newExpense.vendor || newExpense.id}`,
+              summary: `${user.name} a enregistré une dépense ${newExpense.description || newExpense.category || newExpense.id}`,
               amount: newExpense.amount,
               currency: newExpense.currencyCode,
               transactionDate: newExpense.transactionDate
@@ -1936,7 +1961,7 @@ const App: React.FC = () => {
               entityId: result.id,
               actor: user as any,
               metadata: {
-                summary: `${user.name} a modifié une dépense ${result.vendor || result.id}`,
+                summary: `${user.name} a modifié une dépense ${result.description || result.category || result.id}`,
                 diff
               }
             });
@@ -2932,7 +2957,7 @@ const App: React.FC = () => {
             }
           });
         }
-        void logContactDossierFromCrm(newContact, 'created', user?.id);
+        void logContactDossierFromCrm(newContact, 'created', user?.id != null ? String(user.id) : undefined);
         return { contact: newContact, persisted: true };
       }
       return null;
@@ -2988,7 +3013,7 @@ const App: React.FC = () => {
           }
         });
       }
-      void logContactDossierFromCrm(saved, 'updated', user?.id, previousContact ?? null);
+      void logContactDossierFromCrm(saved, 'updated', user?.id != null ? String(user.id) : undefined, previousContact ?? null);
     } catch (error) {
       console.error('Erreur mise à jour contact:', error);
     } finally {

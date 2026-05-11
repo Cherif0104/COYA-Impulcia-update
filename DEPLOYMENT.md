@@ -20,6 +20,23 @@ VITE_SUPABASE_ANON_KEY=votre_cle_anon_supabase
 VITE_GEMINI_API_KEY=votre_cle_api_gemini
 ```
 
+### Production **coya.pro** (recommandé)
+
+Définir l’URL publique du build pour les e-mails « mot de passe oublié » et éviter toute redirection vers `localhost` :
+
+```env
+VITE_SITE_URL=https://www.coya.pro
+```
+
+Dans **Supabase** → Authentication → URL configuration :
+
+- **Site URL** : `https://www.coya.pro` (ou `https://coya.pro` si vous utilisez uniquement l’apex).
+- **Redirect URLs** : inclure au minimum  
+  `https://www.coya.pro/auth/recovery`  
+  (et `https://coya.pro/auth/recovery` si l’apex est utilisé ; en local : `http://localhost:5174/auth/recovery` selon le port Vite).
+
+L’application expose une route SPA dédiée **`/auth/recovery`** pour le retour après clic sur le lien Supabase (voir `constants/coyaSite.ts` et `utils/authRecoveryUrl.ts`).
+
 ### Où trouver ces variables ?
 
 1. **VITE_SUPABASE_URL** : URL de votre projet Supabase (Dashboard > Settings > API)

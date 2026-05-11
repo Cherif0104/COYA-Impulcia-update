@@ -532,7 +532,7 @@ export class AuthService {
   // Réinitialiser le mot de passe
   static async resetPassword(email: string) {
     try {
-      const { getPasswordRecoveryRedirectUrl } = await import('../utils/authRedirect');
+      const { getPasswordRecoveryRedirectUrl } = await import('../utils/authRecoveryUrl');
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: getPasswordRecoveryRedirectUrl(),
       });

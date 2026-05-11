@@ -1,0 +1,5 @@
+# COYA — https://www.coya.pro
+User-agent: *
+Allow: /
+
+# L’application est une SPA ; les routes métier sont servies via index.html.
