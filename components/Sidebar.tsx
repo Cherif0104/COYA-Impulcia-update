@@ -72,7 +72,6 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { icon: 'fas fa-bullseye',         labelKey: 'goals_okrs',      labelFallback: 'Stratégie & pilotage', view: 'goals_okrs',          color: 'text-amber-400' },
   { icon: 'fas fa-calendar-week',    labelKey: 'planning',        labelFallback: 'Planification',       view: 'planning',            color: 'text-cyan-400' },
   { icon: 'fas fa-umbrella-beach',   labelKey: 'leave_management', labelFallback: 'Congés',             view: 'leave_management',    color: 'text-teal-300' },
-  { icon: 'fas fa-coins',            labelKey: 'finance',         labelFallback: 'Finance',             view: 'finance',             color: 'text-emerald-400' },
   { icon: 'fas fa-users-cog',        labelKey: 'rh',              labelFallback: 'Ressources Humaines', view: 'rh',                  color: 'text-green-400' },
   { icon: 'fas fa-calculator',       labelKey: 'comptabilite',    labelFallback: 'Comptabilité',        view: 'comptabilite',        color: 'text-yellow-400' },
   { icon: 'fas fa-chart-line',       labelKey: 'programme',       labelFallback: 'Programme',           view: 'programme',           color: 'text-orange-400' },
@@ -245,10 +244,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         item.view === 'formation'
           ? 'courses'
           : (item.view as ModuleName);
-      const allowed =
-        item.view === 'comptabilite'
-          ? canAccessModule(moduleForAccess) || canAccessModule('finance')
-          : canAccessModule(moduleForAccess);
+      const allowed = canAccessModule(moduleForAccess);
       if (allowed) out.push(item);
     }
     return out;

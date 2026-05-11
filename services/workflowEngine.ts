@@ -3,7 +3,7 @@ import { Budget, Expense, Invoice, LeaveRequest, Meeting, Objective, Project, Pr
 /** Cycle transverse (KPI / actions). Évolution prévue : enrichir en bus d’événements métier + membership projet / RLS côté consommateurs. */
 
 export type WorkflowSeverity = 'info' | 'warning' | 'critical';
-export type WorkflowModule = 'projects' | 'planning' | 'rh' | 'finance' | 'programme' | 'objectives';
+export type WorkflowModule = 'projects' | 'planning' | 'rh' | 'comptabilite' | 'programme' | 'objectives';
 export type WorkflowActionType = 'notify' | 'project_update' | 'objective_update' | 'invoice_update';
 
 export interface WorkflowAction {
@@ -283,7 +283,7 @@ export const runWorkflowCycle = (input: WorkflowCycleInput): WorkflowCycleOutput
           actions.push({
             eventId: `project_budget_threshold:${project.id}:${severity}:${Math.floor(variancePct)}`,
             type: 'notify',
-            module: 'finance',
+            module: 'comptabilite',
             severity,
             message: `Alerte budget projet "${project.title}": variance ${variancePct.toFixed(1)}%`,
             entityType: 'project',
@@ -372,7 +372,7 @@ export const runWorkflowCycle = (input: WorkflowCycleInput): WorkflowCycleOutput
       actions.push({
         eventId: `invoice_overdue_status:${invoice.id}`,
         type: 'invoice_update',
-        module: 'finance',
+        module: 'comptabilite',
         severity: 'critical',
         message: `Facture ${invoice.invoiceNumber} passée en Overdue automatiquement`,
         entityType: 'invoice',
@@ -384,7 +384,7 @@ export const runWorkflowCycle = (input: WorkflowCycleInput): WorkflowCycleOutput
       actions.push({
         eventId: `invoice_due_soon:${invoice.id}:${delta}`,
         type: 'notify',
-        module: 'finance',
+        module: 'comptabilite',
         severity: delta === 0 ? 'critical' : 'warning',
         message: `Facture ${invoice.invoiceNumber} due ${delta === 0 ? 'aujourd’hui' : `dans ${delta} jour(s)`}`,
         entityType: 'invoice',

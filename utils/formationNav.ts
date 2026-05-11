@@ -57,7 +57,7 @@ export const FORMATION_SIDEBAR_ITEMS: { section: FormationHubSection; label: str
   { section: 'overview', label: 'Vue d\u2019ensemble' },
   { section: 'programmes', label: 'Programmes de formation' },
   { section: 'cohortes', label: 'Cohortes' },
-  { section: 'formations', label: 'Formations' },
+  { section: 'formations', label: 'Studio formations' },
   { section: 'cours', label: 'Cours' },
   { section: 'formateurs', label: 'Formateurs / Mentors' },
   { section: 'apprenants', label: 'Apprenants' },

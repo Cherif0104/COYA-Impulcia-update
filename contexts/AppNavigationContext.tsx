@@ -15,8 +15,6 @@ export const NAV_SESSION_COLLECTE_PRESET_PROGRAMME_ID = 'coya_nav_collecte_prese
 export const NAV_SESSION_COLLECTE_PRESET_FORMATION_ID = 'coya_nav_collecte_preset_formation_id';
 /** sessionStorage : au montage du CRM, ouvrir l’onglet Collecte (1 = oui). */
 export const NAV_SESSION_CRM_OPEN_COLLECTE_TAB = 'coya_nav_crm_open_collecte_tab';
-/** @deprecated Remplacé par le hash `#formation/<section>` et `NAV_SESSION_FORMATION_SECTION`. Clé conservée pour compat. */
-export const NAV_SESSION_FORMATION_HUB_TAB = 'coya_nav_formation_hub_tab';
 /** sessionStorage : sous-vue Formation (`overview` | `cohortes` | …) — consommé au montage de `FormationHub`. */
 export const NAV_SESSION_FORMATION_SECTION = 'coya_nav_formation_section';
 /** sessionStorage : préremplir la campagne (id collecte) dans la zone soumissions → CRM. */

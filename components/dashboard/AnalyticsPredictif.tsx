@@ -175,14 +175,14 @@ const AnalyticsPredictif: React.FC<AnalyticsPredictifProps> = ({
 
     if (invoices.length > 0 || expenses.length > 0) {
       list.push({
-        id: 'finance',
-        title: localize('Finance', 'Finance'),
+        id: 'comptabilite',
+        title: localize('Accounting', 'Comptabilité'),
         value: netIncome >= 0 ? `+${netIncome.toFixed(0)}` : `${netIncome.toFixed(0)}`,
         subtitle: localize('Net income', 'Résultat net'),
         level: performanceLevelFromScore(financeScore),
         icon: 'fas fa-file-invoice-dollar',
-        onAction: () => setView('finance'),
-        actionLabel: localize('View finance', 'Voir la finance'),
+        onAction: () => setView('comptabilite'),
+        actionLabel: localize('View accounting', 'Voir la comptabilité'),
       });
     }
 

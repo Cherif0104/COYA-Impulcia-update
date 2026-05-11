@@ -22,7 +22,6 @@ export type ModuleName =
   | 'goals_okrs'
   | 'planning'
   | 'leave_management'
-  | 'finance'
   | 'comptabilite'
   | 'coya_drive'
   | 'daf_services'

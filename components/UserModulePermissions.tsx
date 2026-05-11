@@ -27,7 +27,6 @@ export const moduleDisplayNames: Record<ModuleName, string> = {
   'goals_okrs': 'Objectifs OKR',
   'planning': 'Planification',
   'leave_management': 'Demandes de Congés',
-  'finance': 'Finance',
   'comptabilite': 'Comptabilité',
   'coya_drive': 'COYA Drive',
   'daf_services': 'Moyens Généraux',
@@ -59,7 +58,7 @@ const moduleCategories: Record<string, { label: string; icon: string; modules: M
   workspace: {
     label: 'Workspace',
     icon: 'fas fa-briefcase',
-    modules: ['dashboard', 'projects', 'goals_okrs', 'planning', 'leave_management', 'finance', 'coya_drive'],
+    modules: ['dashboard', 'projects', 'goals_okrs', 'planning', 'leave_management', 'coya_drive'],
   },
   rh: {
     label: 'RH',
@@ -69,7 +68,7 @@ const moduleCategories: Record<string, { label: string; icon: string; modules: M
   admin_financier: {
     label: 'Administratif & Financier',
     icon: 'fas fa-file-invoice-dollar',
-    modules: ['finance', 'programme', 'comptabilite'],
+    modules: ['programme', 'comptabilite'],
   },
   formation: {
     label: 'Formation & Bootcamp',

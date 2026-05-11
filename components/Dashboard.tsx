@@ -102,45 +102,6 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
     );
 }
 
-const FinanceSummaryCard: React.FC<{ invoices: Invoice[]; expenses: Expense[]; setView: (view: string) => void; }> = ({ invoices, expenses, setView }) => {
-    const { t } = useLocalization();
-
-    const outstandingInvoices = useMemo(() => {
-        return invoices.reduce((sum, inv) => {
-            if (inv.status === 'Sent' || inv.status === 'Overdue') return sum + inv.amount;
-            if (inv.status === 'Partially Paid') return sum + (inv.amount - (inv.paidAmount || 0));
-            return sum;
-        }, 0);
-    }, [invoices]);
-
-    const dueExpenses = useMemo(() => {
-        return expenses.filter(exp => exp.status === 'Unpaid').reduce((sum, exp) => sum + exp.amount, 0);
-    }, [expenses]);
-
-    const formatCurrency = (amount: number) => {
-        return `$${amount.toFixed(2)}`;
-    };
-
-    return (
-        <div className="coya-card-padded">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-coya-text">{t('finance')}</h2>
-                <a href="#" onClick={(e) => { e.preventDefault(); setView('finance'); }} className="text-sm font-medium text-coya-primary hover:text-coya-primary-light">{t('view_finance')}</a>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-center">
-                <div>
-                    <p className="text-2xl font-bold text-orange-500">{formatCurrency(outstandingInvoices)}</p>
-                    <p className="text-sm text-gray-500">{t('total_outstanding_invoices')}</p>
-                </div>
-                 <div>
-                    <p className="text-2xl font-bold text-red-500">{formatCurrency(dueExpenses)}</p>
-                    <p className="text-sm text-gray-500">{t('total_due_expenses')}</p>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const ProjectStatusPieChart: React.FC<{ projects: Project[]; onViewProjects: () => void }> = ({ projects, onViewProjects }) => {
     const { t, language } = useLocalization();
     const localize = (en: string, fr: string) => (language === Language.FR ? fr : en);
@@ -365,7 +326,7 @@ const RoleBadge: React.FC<{ role: Role }> = ({ role }) => {
 };
 
 // Types pour la synthèse par module (analyse intelligente connectée aux données)
-type InsightCardId = 'projects' | 'courses' | 'finance' | 'time' | 'rh' | 'predictions';
+type InsightCardId = 'projects' | 'courses' | 'comptabilite' | 'time' | 'rh' | 'predictions';
 type InsightStatus = 'success' | 'warning' | 'info' | 'danger';
 
 interface SynthesisCard {
@@ -468,21 +429,21 @@ const IntelligentInsights: React.FC<{
     const netIncome = paidInvoices - totalExpenses;
     const margin = paidInvoices > 0 ? ((netIncome / paidInvoices) * 100).toFixed(0) : '0';
 
-    if (canAccessModule === undefined || canAccessModule('finance' as ModuleName)) {
+    if (canAccessModule === undefined || canAccessModule('comptabilite')) {
       const status: InsightStatus = netIncome < 0 ? 'danger' : unpaidAmount > paidInvoices * 0.5 ? 'warning' : netIncome > paidInvoices * 0.3 ? 'success' : 'info';
       const metric = localize(`Net ${netIncome >= 0 ? '+' : ''}$${netIncome.toFixed(0)}`, `Net ${netIncome >= 0 ? '+' : ''}${netIncome.toFixed(0)} $`);
       const summary = netIncome < 0
         ? localize('Expenses exceed revenue. Review budget.', 'Dépenses > revenus. Revoyez le budget.')
         : localize(`Margin ${margin}%. Revenue: $${paidInvoices.toFixed(0)}.`, `Marge ${margin} %. Revenus : ${paidInvoices.toFixed(0)} $.`);
       list.push({
-        id: 'finance',
-        view: 'finance',
+        id: 'comptabilite',
+        view: 'comptabilite',
         icon: 'fas fa-file-invoice-dollar',
-        title: localize('Finance', 'Finance'),
+        title: localize('Accounting', 'Comptabilité'),
         metric,
         summary,
         status,
-        detailTitle: localize('Financial analysis', 'Analyse Finance'),
+        detailTitle: localize('Financial analysis', 'Analyse comptable'),
         detailItems: [
           localize(`Revenue (paid): $${paidInvoices.toFixed(2)}`, `Revenus (payés) : ${paidInvoices.toFixed(2)} $`),
           localize(`Expenses: $${totalExpenses.toFixed(2)}`, `Dépenses : ${totalExpenses.toFixed(2)} $`),
@@ -1223,7 +1184,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           icon="fas fa-file-invoice-dollar"
           items={pendingInvoicesItems}
           emptyMessage={localize('No pending invoices', 'Aucune facture en attente')}
-          onSeeAll={() => setView('finance')}
+          onSeeAll={() => setView('comptabilite')}
         />
       </div>
       )}

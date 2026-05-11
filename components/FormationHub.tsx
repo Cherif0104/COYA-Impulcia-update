@@ -20,6 +20,21 @@ import CourseManagement from './CourseManagement';
 import DataAdapter from '../services/dataAdapter';
 import OrganizationService from '../services/organizationService';
 import * as programmeService from '../services/programmeService';
+import {
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  Film,
+  Globe,
+  GraduationCap,
+  ImageIcon,
+  Layers,
+  LineChart,
+  Play,
+  Plus,
+  School,
+  Users,
+} from 'lucide-react';
 import { Button } from './ui/Button';
 import {
   isFormationHubSection,
@@ -466,7 +481,7 @@ const FormationHub: React.FC<FormationHubProps> = ({
   const renderStub = (title: string, description: string) => (
     <div className={`mx-auto max-w-3xl ${shellCard} p-10 text-center`}>
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-        <i className="fas fa-layer-group text-xl" />
+        <Layers className="h-7 w-7" aria-hidden />
       </div>
       <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
       <p className="mt-2 text-sm text-slate-600">{description}</p>
@@ -712,7 +727,7 @@ const FormationHub: React.FC<FormationHubProps> = ({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
-            <i className="fas fa-graduation-cap text-2xl" />
+            <GraduationCap className="h-8 w-8" aria-hidden />
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Formation</h1>
@@ -724,7 +739,7 @@ const FormationHub: React.FC<FormationHubProps> = ({
             type="button"
             variant="secondary"
             size="md"
-            leftIcon={<i className="fas fa-globe text-slate-500" />}
+            leftIcon={<Globe className="h-4 w-4 text-slate-500" aria-hidden />}
             className="border-slate-200 bg-white shadow-sm"
             onClick={() => setSection('cours')}
           >
@@ -734,7 +749,7 @@ const FormationHub: React.FC<FormationHubProps> = ({
             type="button"
             variant="primary"
             size="md"
-            leftIcon={<i className="fas fa-plus text-[11px]" />}
+            leftIcon={<Plus className="h-4 w-4" aria-hidden />}
             className="bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500/30"
             onClick={() => {
               if (canStudio) setSection('formations');
@@ -756,7 +771,7 @@ const FormationHub: React.FC<FormationHubProps> = ({
               <p className="mt-1 text-sm text-slate-600">{activeCoursesCount} actives</p>
             </div>
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <i className="fas fa-book" />
+              <BookOpen className="h-5 w-5" aria-hidden />
             </span>
           </div>
         </div>
@@ -769,7 +784,7 @@ const FormationHub: React.FC<FormationHubProps> = ({
               <p className="text-[11px] text-slate-400">Variation indicative — agrégation temps réel à brancher</p>
             </div>
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-              <i className="fas fa-users" />
+              <Users className="h-5 w-5" aria-hidden />
             </span>
           </div>
         </div>
@@ -785,7 +800,7 @@ const FormationHub: React.FC<FormationHubProps> = ({
               </p>
             </div>
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
-              <i className="fas fa-user-graduate" />
+              <School className="h-5 w-5" aria-hidden />
             </span>
           </div>
         </div>
@@ -832,7 +847,7 @@ const FormationHub: React.FC<FormationHubProps> = ({
                   >
                     {!row.thumbnailUrl ? (
                       <div className="flex h-full w-full items-center justify-center text-slate-400">
-                        <i className="fas fa-image" />
+                        <ImageIcon className="h-6 w-6" aria-hidden />
                       </div>
                     ) : null}
                   </div>
@@ -877,11 +892,11 @@ const FormationHub: React.FC<FormationHubProps> = ({
                   <div className="absolute inset-0 flex items-center justify-center">
                     <button
                       type="button"
-                      className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-blue-600 shadow-lg transition hover:scale-105"
+                      className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-blue-600 shadow-md transition hover:scale-105"
                       aria-label="Lire la vidéo"
                       onClick={() => onSelectCourse(continueCourse.id)}
                     >
-                      <i className="fas fa-play ml-1 text-xl" />
+                      <Play className="ml-0.5 h-7 w-7 fill-current" aria-hidden />
                     </button>
                   </div>
                   <span className="absolute left-3 top-3 rounded-full bg-blue-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
@@ -901,16 +916,16 @@ const FormationHub: React.FC<FormationHubProps> = ({
                     />
                   </div>
                   <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-                    <span>
-                      <i className="fas fa-clock mr-1 text-slate-400" />
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-slate-400" aria-hidden />
                       Durée (exemple) : 32 min
                     </span>
-                    <span>
-                      <i className="fas fa-film mr-1 text-slate-400" />
+                    <span className="inline-flex items-center gap-1">
+                      <Film className="h-3.5 w-3.5 text-slate-400" aria-hidden />
                       Type (exemple) : Vidéo
                     </span>
-                    <span>
-                      <i className="fas fa-chart-line mr-1 text-slate-400" />
+                    <span className="inline-flex items-center gap-1">
+                      <LineChart className="h-3.5 w-3.5 text-slate-400" aria-hidden />
                       Progression : {heroProgress}%
                     </span>
                   </div>
@@ -965,13 +980,19 @@ const FormationHub: React.FC<FormationHubProps> = ({
             </div>
             <ul className="mt-3 space-y-3">
               {[
-                { icon: 'fa-book-open', color: 'text-blue-500', bg: 'bg-blue-50', text: 'Nouvelle leçon disponible', time: 'Il y a 2 h' },
-                { icon: 'fa-check-circle', color: 'text-emerald-500', bg: 'bg-emerald-50', text: 'Votre évaluation a été notée', time: 'Hier' },
-                { icon: 'fa-users', color: 'text-violet-500', bg: 'bg-violet-50', text: 'Nouvel apprenant inscrit à votre cohorte', time: 'Il y a 3 j' },
+                { icon: 'book' as const, color: 'text-blue-500', bg: 'bg-blue-50', text: 'Nouvelle leçon disponible', time: 'Il y a 2 h' },
+                { icon: 'check' as const, color: 'text-emerald-500', bg: 'bg-emerald-50', text: 'Votre évaluation a été notée', time: 'Hier' },
+                { icon: 'users' as const, color: 'text-violet-500', bg: 'bg-violet-50', text: 'Nouvel apprenant inscrit à votre cohorte', time: 'Il y a 3 j' },
               ].map((n) => (
                 <li key={n.text} className="flex gap-3">
                   <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${n.bg}`}>
-                    <i className={`fas ${n.icon} ${n.color} text-sm`} />
+                    {n.icon === 'book' ? (
+                      <BookOpen className={`h-4 w-4 ${n.color}`} aria-hidden />
+                    ) : n.icon === 'check' ? (
+                      <CheckCircle2 className={`h-4 w-4 ${n.color}`} aria-hidden />
+                    ) : (
+                      <Users className={`h-4 w-4 ${n.color}`} aria-hidden />
+                    )}
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm text-slate-800">{n.text}</p>

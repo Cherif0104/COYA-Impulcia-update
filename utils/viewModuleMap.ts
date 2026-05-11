@@ -35,7 +35,6 @@ export function viewNameToModuleName(view: string): ModuleName | null {
     daf_services: 'daf_services',
     leave_management: 'leave_management',
     leave_management_admin: 'leave_management_admin',
-    finance: 'finance',
     comptabilite: 'comptabilite',
     rh: 'rh',
     /** Coquille salarié `/hr/employees/:id` — même garde d’accès que le module RH. */
@@ -74,7 +73,6 @@ const LANDING_ORDER: ModuleName[] = [
   'goals_okrs',
   'courses',
   'jobs',
-  'finance',
   'comptabilite',
   'coya_drive',
   'daf_services',

@@ -1087,14 +1087,14 @@ const EmployeeWorkspaceShell: React.FC<EmployeeWorkspaceShellProps> = ({
                     <button
                       type="button"
                       onClick={() => onNavigateView('formation')}
-                      className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
+                      className="rounded-2xl border border-slate-200/80 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-[0_8px_30px_rgba(15,23,42,0.06)] hover:bg-slate-50"
                     >
                       {isFr ? 'Ouvrir les formations' : 'Open courses'}
                     </button>
                     <button
                       type="button"
                       onClick={() => onNavigateView('trinite')}
-                      className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100"
+                      className="rounded-2xl border border-slate-200/80 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-[0_8px_30px_rgba(15,23,42,0.06)] hover:bg-slate-50"
                     >
                       {isFr ? 'Trinité' : 'Trinité'}
                     </button>
@@ -1102,7 +1102,7 @@ const EmployeeWorkspaceShell: React.FC<EmployeeWorkspaceShellProps> = ({
                 ) : null}
               </div>
             ) : (
-              <ul className="max-h-[480px] divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-100">
+              <ul className="max-h-[480px] divide-y divide-slate-100 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
                 {trainingRows.map((row) => (
                   <li key={row.courseId} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
                     <span className="font-medium text-slate-900">{row.title}</span>

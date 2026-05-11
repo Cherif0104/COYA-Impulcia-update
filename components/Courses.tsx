@@ -1,14 +1,35 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import {
+  ArrowDownWideNarrow,
+  ArrowUpWideNarrow,
+  BookMarked,
+  BookOpen,
+  CheckCircle2,
+  CircleHelp,
+  Clock,
+  Filter,
+  Grid3x3,
+  GripHorizontal,
+  LayoutList,
+  Pencil,
+  Search,
+  SlidersHorizontal,
+  Star,
+  User as UserIcon,
+  Users,
+} from 'lucide-react';
 import { useLocalization } from '../contexts/LocalizationContext';
-import { useAuth } from '../contexts/AuthContextSupabase';
 import { NAV_SESSION_COURSES_PROGRAMME_ID } from '../contexts/AppNavigationContext';
-import { Course, User } from '../types';
+import type { Course, User as CoyaUser } from '../types';
 import LinkPreview from './common/LinkPreview';
+
+const shellCard =
+  'rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)]';
 
 interface CoursesProps {
   onSelectCourse: (id: string) => void;
   courses: Course[];
-  users?: User[];
+  users?: CoyaUser[];
   /** Grille intégrée au hub Formation : onglets catégories, badges promo, chrome allégé. */
   formationHubEmbed?: boolean;
   // Module consultatif uniquement - pas de création/édition
@@ -18,13 +39,13 @@ function coursePromoBadge(course: Course): { label: string; className: string } 
   const createdRaw = course.createdAt ? new Date(course.createdAt).getTime() : 0;
   const fortyFiveDays = 45 * 24 * 60 * 60 * 1000;
   if (createdRaw && Date.now() - createdRaw < fortyFiveDays) {
-    return { label: 'NOUVEAU', className: 'bg-blue-600 text-white' };
+    return { label: 'Nouveau', className: 'bg-blue-600 text-white' };
   }
   if ((course.rating ?? 0) >= 4.5 && (course.studentsCount ?? 0) >= 10) {
-    return { label: 'POPULAIRE', className: 'bg-violet-600 text-white' };
+    return { label: 'Populaire', className: 'bg-violet-600 text-white' };
   }
   if ((course.rating ?? 0) >= 4.2 && (course.studentsCount ?? 0) < 80) {
-    return { label: 'RECOMMANDÉ', className: 'bg-emerald-600 text-white' };
+    return { label: 'Recommandé', className: 'bg-emerald-600 text-white' };
   }
   return null;
 }
@@ -46,9 +67,8 @@ function levelLabel(level?: Course['level']): string {
   return 'Tous niveaux';
 }
 
-const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, formationHubEmbed = false }) => {
+const Courses: React.FC<CoursesProps> = ({ courses, users: _users = [], onSelectCourse, formationHubEmbed = false }) => {
   const { t } = useLocalization();
-  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [levelFilter, setLevelFilter] = useState<string>('all');
@@ -163,9 +183,10 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
 
   // Format duration
   const formatDuration = (duration: number | string | undefined): string => {
-    if (!duration) return 'N/A';
+    if (!duration) return '—';
     if (typeof duration === 'string') return duration;
-    return `${Math.ceil(duration / 40)} Weeks`;
+    const weeks = Math.ceil(duration / 40);
+    return `${weeks} sem.`;
   };
 
   // Format rating
@@ -182,8 +203,8 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
         {!formationHubEmbed ? (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-gray-900">{t('courses') || 'Formations'}</h2>
-            <p className="text-gray-500 text-sm">{t('view_all_courses') || 'Plan de formation 2025'}</p>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">{t('courses') || 'Formations'}</h2>
+            <p className="mt-1 text-sm text-slate-600">{t('view_all_courses') || 'Catalogue des parcours publiés'}</p>
           </div>
         </div>
         ) : null}
@@ -210,50 +231,58 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
         {/* KPIs */}
         {!formationHubEmbed ? (
         <div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Total Cours</span>
-                <i className="fas fa-book text-2xl text-blue-500"></i>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className={`${shellCard} p-5`}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total cours</span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <BookOpen className="h-5 w-5" aria-hidden />
+                </span>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{totalCourses}</p>
+              <p className="mt-2 text-3xl font-bold text-slate-900">{totalCourses}</p>
             </div>
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Publiés</span>
-                <i className="fas fa-check-circle text-2xl text-green-500"></i>
+            <div className={`${shellCard} p-5`}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Publiés</span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <CheckCircle2 className="h-5 w-5" aria-hidden />
+                </span>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{publishedCourses}</p>
+              <p className="mt-2 text-3xl font-bold text-slate-900">{publishedCourses}</p>
             </div>
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Brouillons</span>
-                <i className="fas fa-edit text-2xl text-yellow-500"></i>
+            <div className={`${shellCard} p-5`}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Brouillons</span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                  <Pencil className="h-5 w-5" aria-hidden />
+                </span>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{draftCourses}</p>
-      </div>
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Total Étudiants</span>
-                <i className="fas fa-users text-2xl text-purple-500"></i>
+              <p className="mt-2 text-3xl font-bold text-slate-900">{draftCourses}</p>
+            </div>
+            <div className={`${shellCard} p-5`}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Apprenants (cumul)</span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                  <Users className="h-5 w-5" aria-hidden />
+                </span>
+              </div>
+              <p className="mt-2 text-3xl font-bold text-slate-900">{totalStudents}</p>
+            </div>
+          </div>
         </div>
-              <p className="text-3xl font-bold text-gray-900">{totalStudents}</p>
-        </div>
-      </div>
-    </div>
         ) : null}
 
         {/* Barre de recherche et filtres */}
         <div>
           {programmeFilterId && (
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-              <span>
-                <i className="fas fa-filter mr-2" aria-hidden />
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+              <span className="flex items-start gap-2">
+                <Filter className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden />
                 {t('courses') || 'Formations'} : affichage filtré par le programme ouvert depuis le module Programme.
               </span>
               <button
                 type="button"
-                className="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-emerald-800 shadow-sm border border-emerald-200 hover:bg-emerald-100"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
                 onClick={() => {
                   setProgrammeFilterId(null);
                   try {
@@ -267,24 +296,18 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
               </button>
             </div>
           )}
-          <div
-            className={
-              formationHubEmbed
-                ? 'bg-white rounded-2xl shadow-[0_8px_30px_rgba(15,23,42,0.06)] border border-slate-200/80 p-4 mb-4'
-                : 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6'
-            }
-          >
+          <div className={`${shellCard} mb-4 p-4 sm:mb-6`}>
             <div className="flex flex-wrap items-center gap-4">
               {/* Recherche */}
               <div className="flex-1 min-w-[200px]">
                 <div className="relative">
-                  <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
                   <input
                     type="text"
                     placeholder={t('search') || 'Rechercher un cours...'}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full rounded-xl border border-slate-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
               </div>
@@ -294,7 +317,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   <option value="all">Toutes les catégories</option>
                   <option value="no_category">Sans catégorie</option>
@@ -307,7 +330,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   <option value="all">Toutes les catégories</option>
                   <option value="no_category">Sans catégorie</option>
@@ -323,7 +346,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
               <select
                 value={levelFilter}
                 onChange={(e) => setLevelFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="all">Tous les niveaux</option>
                 <option value="beginner">Débutant</option>
@@ -332,63 +355,71 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
               </select>
 
             {/* Note: Seuls les cours publiés sont affichés */}
-            <div className="px-4 py-2 text-sm text-gray-500 italic">
-              <i className="fas fa-info-circle mr-2"></i>
-              Cours publiés uniquement
+            <div className="flex items-center gap-2 px-2 py-2 text-sm text-slate-500">
+              <CircleHelp className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+              <span className="italic">Cours publiés uniquement</span>
             </div>
 
               {/* Tri */}
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="date">Date</option>
                 <option value="title">Titre</option>
                 <option value="instructor">Formateur</option>
                 <option value="rating">Note</option>
-                <option value="students">Étudiants</option>
+                <option value="students">Apprenants</option>
               </select>
 
               {/* Ordre de tri */}
               <button
+                type="button"
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center"
+                className="flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50"
                 title={sortOrder === 'asc' ? 'Ordre croissant' : 'Ordre décroissant'}
               >
-                <i className={`fas ${sortOrder === 'asc' ? 'fa-sort-up' : 'fa-sort-down'} mr-2`}></i>
+                {sortOrder === 'asc' ? (
+                  <ArrowUpWideNarrow className="h-4 w-4" aria-hidden />
+                ) : (
+                  <ArrowDownWideNarrow className="h-4 w-4" aria-hidden />
+                )}
                 {sortOrder === 'asc' ? '↑' : '↓'}
               </button>
 
               {/* Sélecteur de vue */}
               {!formationHubEmbed ? (
-              <div className="flex items-center gap-2 border border-gray-300 rounded-lg p-1">
+              <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/80 p-1">
                 <button
+                  type="button"
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === 'grid' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  className={`rounded-lg p-2 transition-colors ${
+                    viewMode === 'grid' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-white'
                   }`}
                   title="Vue grille"
                 >
-                  <i className="fas fa-th"></i>
+                  <Grid3x3 className="h-4 w-4" aria-hidden />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === 'list' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  className={`rounded-lg p-2 transition-colors ${
+                    viewMode === 'list' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-white'
                   }`}
                   title="Vue liste"
                 >
-                  <i className="fas fa-list"></i>
+                  <LayoutList className="h-4 w-4" aria-hidden />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setViewMode('compact')}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === 'compact' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  className={`rounded-lg p-2 transition-colors ${
+                    viewMode === 'compact' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-white'
                   }`}
                   title="Vue compacte"
                 >
-                  <i className="fas fa-grip-lines"></i>
+                  <GripHorizontal className="h-4 w-4" aria-hidden />
                 </button>
               </div>
               ) : (
@@ -397,17 +428,17 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                   className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50"
                   aria-label="Filtres"
                 >
-                  <i className="fas fa-sliders-h" />
+                  <SlidersHorizontal className="h-4 w-4" aria-hidden />
                 </button>
               )}
             </div>
 
             {/* Compteur de résultats */}
-            <div className="mt-3 pt-3 border-t border-gray-200 text-sm text-gray-600">
+            <div className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">
               {filteredCourses.length} {filteredCourses.length > 1 ? 'cours trouvés' : 'cours trouvé'}
               {searchQuery && (
-                <span className="ml-2 text-emerald-600">
-                  pour "{searchQuery}"
+                <span className="ml-2 font-medium text-blue-600">
+                  pour « {searchQuery} »
                 </span>
               )}
             </div>
@@ -415,9 +446,9 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
 
           {/* Liste des cours selon le mode de vue */}
           {filteredCourses.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-              <i className="fas fa-book-reader text-6xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600 text-lg mb-2">
+            <div className={`${shellCard} p-12 text-center`}>
+              <BookMarked className="mx-auto mb-4 h-14 w-14 text-slate-300" aria-hidden />
+              <p className="mb-2 text-lg text-slate-600">
                 {searchQuery || categoryFilter !== 'all' || levelFilter !== 'all' ? 
                 'Aucun cours publié ne correspond aux critères' : 
                 t('no_courses_found') || 'Aucun cours publié disponible'}
@@ -430,7 +461,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                   ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'
                   : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
                 : viewMode === 'compact' ?
-                'bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden' :
+                `${shellCard} overflow-hidden` :
                 'space-y-6'
             }>
               {filteredCourses.map(course => {
@@ -441,8 +472,8 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                     onClick={() => onSelectCourse(course.id)}
                     className={
                       formationHubEmbed
-                        ? 'cursor-pointer overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-lg'
-                        : 'bg-white rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer border border-gray-200 overflow-hidden'
+                        ? `cursor-pointer overflow-hidden ${shellCard} transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(15,23,42,0.08)]`
+                        : `cursor-pointer overflow-hidden ${shellCard} transition-all hover:shadow-[0_12px_40px_rgba(15,23,42,0.08)]`
                     }
                   >
                     {course.thumbnailUrl ? (
@@ -456,7 +487,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                         ) : null}
                       </div>
                     ) : (
-                      <div className="relative h-40 bg-gradient-to-br from-emerald-100 to-blue-100 flex items-center justify-center">
+                      <div className="relative flex h-40 items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200/80">
                         {promo ? (
                           <span
                             className={`absolute left-3 top-3 rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide ${promo.className}`}
@@ -464,12 +495,12 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                             {promo.label}
                           </span>
                         ) : null}
-                        <i className={`${course.icon || 'fas fa-book'} text-6xl text-gray-400`}></i>
+                        <BookOpen className="h-16 w-16 text-slate-400" aria-hidden />
                       </div>
                     )}
                     <div className="p-5">
-                    <h3 className="text-lg font-bold text-gray-900 line-clamp-2 mb-2">{course.title}</h3>
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{course.description}</p>
+                    <h3 className="mb-2 line-clamp-2 text-lg font-bold text-slate-900">{course.title}</h3>
+                      <p className="mb-2 line-clamp-2 text-sm text-slate-600">{course.description}</p>
                       {formationHubEmbed ? (
                         <p className="mb-2 text-xs font-medium text-slate-500">
                           {levelLabel(course.level)} ·{' '}
@@ -479,17 +510,17 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                           })()}
                         </p>
                       ) : null}
-                      <div className="flex items-center gap-2 mb-3 text-xs text-gray-500">
-                        <span><i className="fas fa-user mr-1"></i>{course.instructor}</span>
-                        <span>•</span>
-                        <span><i className="fas fa-clock mr-1"></i>{formatDuration(course.duration)}</span>
+                      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1"><UserIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />{course.instructor}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />{formatDuration(course.duration)}</span>
                         {course.level && (
                           <>
                             <span>•</span>
-                            <span className={`px-2 py-0.5 rounded ${
-                              course.level === 'beginner' ? 'bg-blue-100 text-blue-800' :
-                              course.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-green-100 text-green-800'
+                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              course.level === 'beginner' ? 'bg-sky-100 text-sky-800' :
+                              course.level === 'intermediate' ? 'bg-amber-100 text-amber-900' :
+                              'bg-emerald-100 text-emerald-800'
                             }`}>
                               {course.level === 'beginner' ? 'Débutant' : course.level === 'intermediate' ? 'Intermédiaire' : 'Avancé'}
                             </span>
@@ -497,7 +528,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                         )}
                       </div>
                       {course.category && (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 mb-2">
+                        <span className="mb-2 inline-block rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
                           {course.category}
                         </span>
                       )}
@@ -512,25 +543,25 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                           )}
                         </div>
                       )}
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
-                        <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+                        <div className="flex items-center gap-3 text-sm text-slate-600">
                           {course.rating && course.rating > 0 && (
-                            <span className="flex items-center">
-                              <i className="fas fa-star text-yellow-500 mr-1"></i>
+                            <span className="inline-flex items-center gap-1">
+                              <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
                               {formatRating(course.rating)}
                             </span>
                           )}
                           {course.studentsCount && course.studentsCount > 0 && (
-                            <span className="flex items-center">
-                              <i className="fas fa-users text-gray-400 mr-1"></i>
+                            <span className="inline-flex items-center gap-1">
+                              <Users className="h-4 w-4 text-slate-400" aria-hidden />
                               {course.studentsCount}
                             </span>
                           )}
                         </div>
                         {course.status && !formationHubEmbed ? (
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            course.status === 'published' ? 'bg-green-100 text-green-800' :
-                            course.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                          <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                            course.status === 'published' ? 'bg-emerald-100 text-emerald-800' :
+                            course.status === 'draft' ? 'bg-slate-100 text-slate-700' :
                             'bg-red-100 text-red-800'
                           }`}>
                             {course.status === 'published' ? 'Publié' : course.status === 'draft' ? 'Brouillon' : 'Archivé'}
@@ -542,21 +573,21 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                 ) : viewMode === 'compact' ? (
                   <div
                     key={course.id}
-                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50/80"
                     onClick={() => onSelectCourse(course.id)}
                   >
                     <div className="px-6 py-4 flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
-                          <h3 className="text-sm font-semibold text-gray-900 truncate">{course.title}</h3>
+                          <h3 className="truncate text-sm font-semibold text-slate-900">{course.title}</h3>
                           {course.category && (
-                            <span className="px-2 py-0.5 text-xs font-semibold rounded bg-blue-100 text-blue-800">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
                               {course.category}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {course.instructor} • {formatDuration(course.duration)} • {course.studentsCount || 0} étudiants
+                        <p className="mt-1 text-xs text-slate-500">
+                          {course.instructor} • {formatDuration(course.duration)} • {course.studentsCount || 0} apprenants
                         </p>
                       </div>
                     </div>
@@ -565,64 +596,64 @@ const Courses: React.FC<CoursesProps> = ({ courses, users = [], onSelectCourse, 
                   <div
                     key={course.id}
                     onClick={() => onSelectCourse(course.id)}
-                    className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer border border-gray-200"
+                    className={`cursor-pointer p-6 ${shellCard} transition-all hover:shadow-[0_12px_40px_rgba(15,23,42,0.08)]`}
                   >
                     <div className="flex items-start gap-5">
                       {course.thumbnailUrl ? (
-                        <div className="w-32 h-32 bg-cover bg-center rounded-lg flex-shrink-0" style={{ backgroundImage: `url(${course.thumbnailUrl})` }}></div>
+                        <div className="h-32 w-32 shrink-0 rounded-xl bg-cover bg-center" style={{ backgroundImage: `url(${course.thumbnailUrl})` }}></div>
                       ) : (
-                        <div className="w-32 h-32 bg-gradient-to-br from-emerald-100 to-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <i className={`${course.icon || 'fas fa-book'} text-4xl text-gray-400`}></i>
+                        <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200/80">
+                          <BookOpen className="h-10 w-10 text-slate-400" aria-hidden />
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex items-start justify-between">
                           <div className="flex-1">
-                            <h3 className="text-xl font-bold text-gray-900 mb-1">{course.title}</h3>
-                            <p className="text-sm text-gray-600 mb-3">{course.description}</p>
+                            <h3 className="mb-1 text-xl font-bold text-slate-900">{course.title}</h3>
+                            <p className="mb-3 text-sm text-slate-600">{course.description}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                          <span className="flex items-center">
-                            <i className="fas fa-user mr-2 text-gray-400"></i>
+                        <div className="mb-3 flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                          <span className="inline-flex items-center gap-2">
+                            <UserIcon className="h-4 w-4 text-slate-400" aria-hidden />
                             {course.instructor}
                           </span>
-                          <span className="flex items-center">
-                            <i className="fas fa-clock mr-2 text-gray-400"></i>
+                          <span className="inline-flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-slate-400" aria-hidden />
                             {formatDuration(course.duration)}
                           </span>
                           {course.level && (
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              course.level === 'beginner' ? 'bg-blue-100 text-blue-800' :
-                              course.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-green-100 text-green-800'
+                            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                              course.level === 'beginner' ? 'bg-sky-100 text-sky-800' :
+                              course.level === 'intermediate' ? 'bg-amber-100 text-amber-900' :
+                              'bg-emerald-100 text-emerald-800'
                             }`}>
                               {course.level === 'beginner' ? 'Débutant' : course.level === 'intermediate' ? 'Intermédiaire' : 'Avancé'}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex flex-wrap items-center gap-4">
                           {course.category && (
-                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                               {course.category}
                             </span>
                           )}
                           {course.rating && course.rating > 0 && (
-                            <span className="flex items-center text-sm">
-                              <i className="fas fa-star text-yellow-500 mr-1"></i>
+                            <span className="inline-flex items-center gap-1 text-sm">
+                              <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
                               {formatRating(course.rating)}
                             </span>
                           )}
                           {course.studentsCount && course.studentsCount > 0 && (
-                            <span className="flex items-center text-sm text-gray-600">
-                              <i className="fas fa-users text-gray-400 mr-1"></i>
-                              {course.studentsCount} étudiant{course.studentsCount > 1 ? 's' : ''}
+                            <span className="inline-flex items-center gap-1 text-sm text-slate-600">
+                              <Users className="h-4 w-4 text-slate-400" aria-hidden />
+                              {course.studentsCount} apprenant{course.studentsCount > 1 ? 's' : ''}
                             </span>
                           )}
                           {course.status && (
-                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                              course.status === 'published' ? 'bg-green-100 text-green-800' :
-                              course.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              course.status === 'published' ? 'bg-emerald-100 text-emerald-800' :
+                              course.status === 'draft' ? 'bg-slate-100 text-slate-700' :
                               'bg-red-100 text-red-800'
                             }`}>
                               {course.status === 'published' ? 'Publié' : course.status === 'draft' ? 'Brouillon' : 'Archivé'}

@@ -86,7 +86,7 @@ const ActivityLogsPage: React.FC<ActivityLogsPageProps> = ({ onNavigate }) => {
             <option value="project">Project</option>
             <option value="planning">Planning</option>
             <option value="goal">Goals</option>
-            <option value="finance">Finance</option>
+            <option value="comptabilite">Comptabilité</option>
           </select>
           <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
             <option value="all">{t('all_actions') || 'Toutes les actions'}</option>

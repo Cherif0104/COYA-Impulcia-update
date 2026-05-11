@@ -48,7 +48,6 @@ import CreateJob from './components/CreateJob';
 import UserManagement from './components/UserManagement';
 import AIAgent from './components/AIAgent';
 import LeaveManagement from './components/LeaveManagement';
-import Finance from './components/Finance';
 import RealtimeService from './services/realtimeService';
 import OrganizationService from './services/organizationService';
 import { supabase } from './services/supabaseService';
@@ -92,6 +91,7 @@ const REMOVED_APP_VIEWS = new Set<string>([
   'talent_analytics',
   'tech',
   'conseil',
+  'finance',
 ]);
 
 const App: React.FC = () => {
@@ -534,7 +534,7 @@ const App: React.FC = () => {
             return true;
           case 'finance':
             setPendingNotification(null);
-            handleSetView('finance');
+            handleSetView('comptabilite');
             return true;
           case 'goals-okrs':
           case 'goals':
@@ -587,7 +587,7 @@ const App: React.FC = () => {
 
     if (type === 'invoice' || type === 'expense' || type === 'finance') {
       setPendingNotification(null);
-      handleSetView('finance');
+      handleSetView('comptabilite');
       return;
     }
 
@@ -681,7 +681,7 @@ const App: React.FC = () => {
             return true;
           case 'finance':
             setPendingNotification(null);
-            handleSetView('finance');
+            handleSetView('comptabilite');
             return true;
           case 'goals-okrs':
           case 'goals':
@@ -734,7 +734,7 @@ const App: React.FC = () => {
 
     if (type === 'invoice' || type === 'expense' || type === 'budget' || type === 'finance') {
       setPendingNotification(null);
-      handleSetView('finance');
+      handleSetView('comptabilite');
       return;
     }
 
@@ -1605,7 +1605,7 @@ const App: React.FC = () => {
         if (user) {
           AuditLogService.logAction({
             action: 'create',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'recurring_invoice',
             entityId: newRecurringInvoice.id,
             actor: user as any,
@@ -1634,7 +1634,7 @@ const App: React.FC = () => {
             : undefined;
           AuditLogService.logAction({
             action: 'update',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'recurring_invoice',
             entityId: result.id,
             actor: user as any,
@@ -1658,7 +1658,7 @@ const App: React.FC = () => {
         if (user && invoiceToDelete) {
           AuditLogService.logAction({
             action: 'delete',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'recurring_invoice',
             entityId: id,
             actor: user as any,
@@ -1684,7 +1684,7 @@ const App: React.FC = () => {
         if (user) {
           AuditLogService.logAction({
             action: 'create',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'recurring_expense',
             entityId: newRecurringExpense.id,
             actor: user as any,
@@ -1713,7 +1713,7 @@ const App: React.FC = () => {
             : undefined;
           AuditLogService.logAction({
             action: 'update',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'recurring_expense',
             entityId: result.id,
             actor: user as any,
@@ -1737,7 +1737,7 @@ const App: React.FC = () => {
         if (user && expenseToDelete) {
           AuditLogService.logAction({
             action: 'delete',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'recurring_expense',
             entityId: id,
             actor: user as any,
@@ -1794,7 +1794,7 @@ const App: React.FC = () => {
           });
           AuditLogService.logAction({
             action: 'create',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'invoice',
             entityId: newInvoice.id,
             actor: user as any,
@@ -1818,7 +1818,7 @@ const App: React.FC = () => {
       
       // Détecter l'erreur de contrainte CHECK et relancer pour affichage à l'utilisateur
       if (error?.code === '23514' || error?.message?.includes('check constraint') || error?.message?.includes('invoices_status_check')) {
-        // L'erreur sera gérée dans Finance.tsx avec un message clair
+        // Erreur de contrainte CHECK côté base (statut / paiement partiel)
         throw error;
       }
       
@@ -1851,7 +1851,7 @@ const App: React.FC = () => {
               : undefined;
             AuditLogService.logAction({
               action: 'update',
-              module: 'finance',
+              module: 'comptabilite',
               entityType: 'invoice',
               entityId: result.id,
               actor: user as any,
@@ -1875,7 +1875,7 @@ const App: React.FC = () => {
         if (user && invoiceToDelete) {
           AuditLogService.logAction({
             action: 'delete',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'invoice',
             entityId: invoiceId,
             actor: user as any,
@@ -1901,7 +1901,7 @@ const App: React.FC = () => {
         if (user) {
           AuditLogService.logAction({
             action: 'create',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'expense',
             entityId: newExpense.id,
             actor: user as any,
@@ -1931,7 +1931,7 @@ const App: React.FC = () => {
               : undefined;
             AuditLogService.logAction({
               action: 'update',
-              module: 'finance',
+              module: 'comptabilite',
               entityType: 'expense',
               entityId: result.id,
               actor: user as any,
@@ -1955,7 +1955,7 @@ const App: React.FC = () => {
         if (user && expenseToDelete) {
           AuditLogService.logAction({
             action: 'delete',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'expense',
             entityId: expenseId,
             actor: user as any,
@@ -1981,7 +1981,7 @@ const App: React.FC = () => {
         if (user) {
           AuditLogService.logAction({
             action: 'create',
-            module: 'finance',
+            module: 'comptabilite',
             entityType: 'budget',
             entityId: newBudget.id,
             actor: user as any,
@@ -2009,7 +2009,7 @@ const App: React.FC = () => {
               : undefined;
             AuditLogService.logAction({
               action: 'update',
-              module: 'finance',
+              module: 'comptabilite',
               entityType: 'budget',
               entityId: updatedBudget.id,
               actor: user as any,
@@ -2049,7 +2049,7 @@ const App: React.FC = () => {
             if (user) {
               AuditLogService.logAction({
                 action: 'delete',
-                module: 'finance',
+                module: 'comptabilite',
                 entityType: 'budget',
                 entityId: budgetId,
                 actor: user as any,
@@ -3419,36 +3419,6 @@ const App: React.FC = () => {
                 />;
       case 'comptabilite':
         return <ComptabiliteModule />;
-      case 'finance':
-        return (
-          <Finance
-            invoices={invoices}
-            expenses={expenses}
-            recurringInvoices={recurringInvoices}
-            recurringExpenses={recurringExpenses}
-            budgets={budgets}
-            projects={projects}
-            onAddInvoice={handleAddInvoice}
-            onUpdateInvoice={handleUpdateInvoice}
-            onDeleteInvoice={handleDeleteInvoice}
-            onAddExpense={handleAddExpense}
-            onUpdateExpense={handleUpdateExpense}
-            onDeleteExpense={handleDeleteExpense}
-            onAddRecurringInvoice={handleAddRecurringInvoice}
-            onUpdateRecurringInvoice={handleUpdateRecurringInvoice}
-            onDeleteRecurringInvoice={handleDeleteRecurringInvoice}
-            onAddRecurringExpense={handleAddRecurringExpense}
-            onUpdateRecurringExpense={handleUpdateRecurringExpense}
-            onDeleteRecurringExpense={handleDeleteRecurringExpense}
-            onAddBudget={handleAddBudget}
-            onUpdateBudget={handleUpdateBudget}
-            onDeleteBudget={handleDeleteBudget}
-            isLoading={isLoading}
-            loadingOperation={loadingOperation}
-            moduleTitle={undefined}
-            moduleSubtitle={undefined}
-          />
-        );
       case 'rh':
         return (
           <RhModule

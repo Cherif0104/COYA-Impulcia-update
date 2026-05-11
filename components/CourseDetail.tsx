@@ -1,4 +1,36 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, type ComponentType } from 'react';
+import {
+    ArrowLeft,
+    ArrowRight,
+    BookOpen,
+    Check,
+    CheckCircle2,
+    ChevronDown,
+    ChevronUp,
+    Circle,
+    ClipboardCheck,
+    Clock,
+    FileText,
+    Folder,
+    FolderOpen,
+    GraduationCap,
+    HelpCircle,
+    Hourglass,
+    LineChart,
+    Link2,
+    Lock,
+    Paperclip,
+    Pause,
+    Play,
+    PlayCircle,
+    Redo2,
+    RotateCcw,
+    Shield,
+    StickyNote,
+    Timer,
+    User,
+    Video,
+} from 'lucide-react';
 import { useLocalization } from '../contexts/LocalizationContext';
 import { useAuth } from '../contexts/AuthContextSupabase';
 import { Course, Language, Lesson, Module, TimeLog, Project, EvidenceDocument } from '../types';
@@ -8,6 +40,7 @@ import { logger } from '../services/loggerService';
 import LinkPreview from './common/LinkPreview';
 import RealtimeService from '../services/realtimeService';
 import { LessonInPlatformViewer, LessonQuizRunner } from './common/LessonInPlatformViewer';
+import { Button } from './ui/Button';
 
 type LessonTimerState = {
     lessonId: string | null;
@@ -39,6 +72,13 @@ interface LessonNote {
     updatedAt: string;
 }
 
+function lessonTypeMeta(lesson: Lesson): { label: string; Icon: ComponentType<{ className?: string }> } {
+    if (lesson.type === 'video') return { label: 'Vidéo', Icon: Video };
+    if (lesson.type === 'reading') return { label: 'Lecture', Icon: BookOpen };
+    if (lesson.type === 'quiz') return { label: 'Quiz', Icon: HelpCircle };
+    return { label: 'Document', Icon: FileText };
+}
+
 // Composant pour une leçon avec statut et notes
 const EnhancedLessonItem: React.FC<{
     lesson: Lesson;
@@ -60,7 +100,8 @@ const EnhancedLessonItem: React.FC<{
 }> = ({ lesson, isCompleted, isInProgress, isNext, note, onToggle, onStart, onNoteChange, course, isLocked, timerSeconds, timerIsRunning, onPauseResume, isFr = true }) => {
     const [showNote, setShowNote] = useState(false);
     const [editingNote, setEditingNote] = useState(note);
-    
+    const { label: typeLabel, Icon: TypeIcon } = lessonTypeMeta(lesson);
+
     const formatSeconds = (totalSeconds: number) => {
         const safeValue = Math.max(0, totalSeconds);
         const minutes = Math.floor(safeValue / 60);
@@ -68,18 +109,37 @@ const EnhancedLessonItem: React.FC<{
         return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    // Déterminer le statut visuel
     const getStatusBadge = () => {
         if (isCompleted) {
-            return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800"><i className="fas fa-check-circle mr-1"></i>Terminé</span>;
+            return (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Terminé
+                </span>
+            );
         }
         if (isInProgress) {
-            return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"><i className="fas fa-play-circle mr-1"></i>En cours</span>;
+            return (
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
+                    <Play className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    En cours
+                </span>
+            );
         }
         if (isNext) {
-            return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800"><i className="fas fa-arrow-right mr-1"></i>Prochaine</span>;
+            return (
+                <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-1 text-xs font-semibold text-violet-800">
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Prochaine
+                </span>
+            );
         }
-        return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600"><i className="far fa-circle mr-1"></i>À faire</span>;
+        return (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
+                <Circle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                À faire
+            </span>
+        );
     };
 
     const handleNoteSave = () => {
@@ -88,46 +148,64 @@ const EnhancedLessonItem: React.FC<{
     };
 
     return (
-        <div className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-            isNext ? 'border-purple-400 bg-purple-50 shadow-md' :
-            isCompleted ? 'border-emerald-200 bg-emerald-50' :
-            isInProgress ? 'border-blue-200 bg-blue-50' :
-            'border-gray-200 bg-white hover:border-gray-300'
-        }`}>
-            <div className="flex items-start justify-between mb-3">
-                <div className="flex items-start flex-1">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 flex-shrink-0 ${
-                        isCompleted ? 'bg-emerald-500' :
-                        isInProgress ? 'bg-blue-500' :
-                        isNext ? 'bg-purple-500' :
-                        'bg-gray-300'
-                    }`}>
-                        <i className={`${
-                            isCompleted ? 'fas fa-check text-white' :
-                            isInProgress ? 'fas fa-play text-white' :
-                            isNext ? 'fas fa-arrow-right text-white' :
-                            'far fa-circle text-gray-600'
-                        }`}></i>
+        <div
+            className={`rounded-2xl border-2 p-4 shadow-[0_8px_30px_rgba(15,23,42,0.06)] transition-all duration-200 ${
+                isNext
+                    ? 'border-violet-300 bg-violet-50/80'
+                    : isCompleted
+                      ? 'border-emerald-200 bg-emerald-50/60'
+                      : isInProgress
+                        ? 'border-blue-200 bg-blue-50/60'
+                        : 'border-slate-200/80 bg-white hover:border-slate-300'
+            }`}
+        >
+            <div className="mb-3 flex items-start justify-between">
+                <div className="flex min-w-0 flex-1 items-start">
+                    <div
+                        className={`mr-4 flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
+                            isCompleted
+                                ? 'bg-emerald-500 text-white'
+                                : isInProgress
+                                  ? 'bg-blue-600 text-white'
+                                  : isNext
+                                    ? 'bg-violet-600 text-white'
+                                    : 'bg-slate-200 text-slate-600'
+                        }`}
+                    >
+                        {isCompleted ? (
+                            <Check className="h-5 w-5" aria-hidden />
+                        ) : isInProgress ? (
+                            <Play className="h-5 w-5" aria-hidden />
+                        ) : isNext ? (
+                            <ArrowRight className="h-5 w-5" aria-hidden />
+                        ) : (
+                            <Circle className="h-5 w-5" aria-hidden />
+                        )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                            <h4 className={`font-bold text-lg ${
-                                isCompleted ? 'text-emerald-800' :
-                                isInProgress ? 'text-blue-800' :
-                                isNext ? 'text-purple-800' :
-                                'text-gray-800'
-                            }`}>
+                    <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <h4
+                                className={`text-lg font-bold ${
+                                    isCompleted
+                                        ? 'text-emerald-900'
+                                        : isInProgress
+                                          ? 'text-blue-900'
+                                          : isNext
+                                            ? 'text-violet-900'
+                                            : 'text-slate-900'
+                                }`}
+                            >
                                 {lesson.title}
                             </h4>
                             {getStatusBadge()}
                         </div>
-                        <div className="flex items-center gap-3 text-sm text-gray-600 mb-2">
-                            <span className="flex items-center">
-                                <i className={`${lesson.icon || 'fas fa-play-circle'} mr-1`}></i>
-                                {lesson.type === 'video' ? '📹 Vidéo' : lesson.type === 'reading' ? '📖 Lecture' : lesson.type === 'quiz' ? '❓ Quiz' : '📄 Document'}
+                        <div className="mb-2 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                            <span className="inline-flex items-center gap-1.5">
+                                <TypeIcon className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                                {typeLabel}
                             </span>
-                            <span className="flex items-center">
-                                <i className="fas fa-clock mr-1"></i>
+                            <span className="inline-flex items-center gap-1.5">
+                                <Clock className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
                                 {lesson.duration}
                             </span>
                         </div>
@@ -135,112 +213,115 @@ const EnhancedLessonItem: React.FC<{
                 </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
                 {!isCompleted && (
-                    <button
+                    <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        disabled={isLocked}
+                        leftIcon={
+                            isInProgress ? (
+                                <Redo2 className="h-4 w-4" aria-hidden />
+                            ) : (
+                                <Play className="h-4 w-4" aria-hidden />
+                            )
+                        }
+                        className={
+                            isNext
+                                ? '!bg-gradient-to-r !from-violet-600 !to-violet-700 hover:!from-violet-700 hover:!to-violet-800'
+                                : isInProgress
+                                  ? '!bg-gradient-to-r !from-blue-600 !to-blue-700 hover:!from-blue-700 hover:!to-blue-800'
+                                  : '!bg-slate-800 hover:!bg-slate-900'
+                        }
                         onClick={() => {
                             if (isLocked) return;
                             onStart(lesson);
                         }}
-                        disabled={isLocked}
-                        className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center ${
-                            isNext 
-                                ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 shadow-md' 
-                                : isInProgress
-                                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
-                                : 'bg-gray-600 text-white hover:bg-gray-700'
-                        } ${isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
                     >
-                        <i className={`fas ${isNext ? 'fa-play' : isInProgress ? 'fa-redo' : 'fa-play'} mr-2`}></i>
                         {isNext ? 'Continuer' : isInProgress ? 'Reprendre' : 'Commencer'}
-                    </button>
+                    </Button>
                 )}
-                <button
+                <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={isLocked}
+                    leftIcon={isCompleted ? <RotateCcw className="h-4 w-4" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
                     onClick={() => {
                         if (isLocked) return;
                         onToggle(lesson.id);
                     }}
-                    disabled={isLocked}
-                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                        isCompleted
-                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    } ${isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
-                    <i className={`fas ${isCompleted ? 'fa-undo' : 'fa-check'} mr-2`}></i>
                     {isCompleted ? 'Marquer non terminé' : 'Marquer terminé'}
-                </button>
+                </Button>
                 {typeof timerSeconds === 'number' && onPauseResume && (
-                    <button
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className={timerIsRunning ? '!border-amber-300 !bg-amber-500 !text-white hover:!bg-amber-600' : '!border-amber-200 !bg-amber-50 !text-amber-900'}
+                        leftIcon={timerIsRunning ? <Pause className="h-4 w-4" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />}
                         onClick={onPauseResume}
-                        className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center ${
-                            timerIsRunning ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                        }`}
                     >
-                        <i className={`fas ${timerIsRunning ? 'fa-pause' : 'fa-play'} mr-2`}></i>
-                        {timerIsRunning ? 'Pause' : 'Reprendre'}
-                    </button>
+                        {timerIsRunning ? 'Pause' : 'Reprendre chrono'}
+                    </Button>
                 )}
-                <button
+                <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<StickyNote className="h-4 w-4" aria-hidden />}
                     onClick={() => setShowNote(!showNote)}
-                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                        note ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={note ? '!border-amber-200 !bg-amber-50 !text-amber-900' : undefined}
                 >
-                    <i className={`fas ${note ? 'fa-sticky-note' : 'fa-sticky-note'} mr-2`}></i>
-                    Notes {note ? `(${note.length} caractères)` : ''}
-                </button>
+                    Notes{note ? ` (${note.length} car.)` : ''}
+                </Button>
             </div>
 
-            {/* Zone de notes */}
             {showNote && (
-                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-3">
                     <textarea
                         value={editingNote}
                         onChange={(e) => setEditingNote(e.target.value)}
-                        placeholder="Ajoutez vos notes sur cette leçon..."
-                        className="w-full p-2 border border-yellow-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 min-h-[100px]"
+                        placeholder="Ajoutez vos notes sur cette leçon…"
+                        className="min-h-[100px] w-full rounded-xl border border-amber-200/80 p-2 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-300/40"
                     />
-                    <div className="flex justify-end gap-2 mt-2">
-                        <button
+                    <div className="mt-2 flex justify-end gap-2">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
                             onClick={() => {
                                 setEditingNote(note);
                                 setShowNote(false);
                             }}
-                            className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
                         >
                             Annuler
-                        </button>
-                        <button
-                            onClick={handleNoteSave}
-                            className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700"
-                        >
+                        </Button>
+                        <Button type="button" variant="primary" size="sm" onClick={handleNoteSave}>
                             Enregistrer
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}
 
             {typeof timerSeconds === 'number' && (
-                <div className="mt-3 px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg flex items-center justify-between">
-                    <span className="font-mono text-xl text-gray-800">
-                        {formatSeconds(timerSeconds)}
-                    </span>
+                <div className="mt-3 flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <span className="font-mono text-xl text-slate-900">{formatSeconds(timerSeconds)}</span>
                     {timerIsRunning !== undefined && (
-                        <span className={`text-xs font-semibold uppercase ${timerIsRunning ? 'text-green-600' : 'text-gray-500'}`}>
+                        <span className={`text-xs font-semibold uppercase ${timerIsRunning ? 'text-emerald-600' : 'text-slate-500'}`}>
                             {timerIsRunning ? 'Chrono en cours' : 'Chrono en pause'}
                         </span>
                     )}
                 </div>
             )}
 
-            {/* Lecteur in-plateforme (vidéo / PDF / YouTube) ou quiz */}
             <div className="mt-4 space-y-4">
                 {lesson.type === 'quiz' && lesson.quizQuestions && lesson.quizQuestions.length > 0 ? (
                     <LessonQuizRunner questions={lesson.quizQuestions} isFr={isFr} />
                 ) : lesson.type === 'quiz' ? (
-                    <p className="text-sm text-coya-text-muted rounded-coya border border-dashed border-coya-border p-4">
+                    <p className="rounded-coya border border-dashed border-coya-border p-4 text-sm text-coya-text-muted">
                         {isFr
                             ? 'Leçon quiz : ajoutez des questions dans la gestion du cours (module Gestion des formations).'
                             : 'Quiz lesson: add questions in course management.'}
@@ -250,11 +331,10 @@ const EnhancedLessonItem: React.FC<{
                 )}
             </div>
 
-            {/* Pièces jointes de la leçon */}
             {lesson.attachments && lesson.attachments.length > 0 && (
                 <div className="mt-3">
-                    <p className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
-                        <i className="fas fa-paperclip text-emerald-600"></i>
+                    <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <Paperclip className="h-4 w-4 text-emerald-600" aria-hidden />
                         Pièces jointes
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -265,32 +345,28 @@ const EnhancedLessonItem: React.FC<{
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 download={attachment.fileName}
-                                className="px-3 py-1 bg-emerald-50 border border-emerald-200 text-sm rounded-lg text-emerald-700 hover:bg-emerald-100 transition"
+                                className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
                             >
-                                <i className="fas fa-file-alt mr-1"></i>
-                                {attachment.fileName}
+                                <span className="inline-flex items-center gap-1">
+                                    <FileText className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                    {attachment.fileName}
+                                </span>
                             </a>
                         ))}
                     </div>
                 </div>
             )}
 
-            {/* Liens complémentaires */}
             {lesson.externalLinks && lesson.externalLinks.length > 0 && (
                 <div className="mt-3">
-                    <p className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
-                        <i className="fas fa-link text-blue-600"></i>
+                    <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <Link2 className="h-4 w-4 text-blue-600" aria-hidden />
                         Liens complémentaires
                     </p>
                     <ul className="space-y-1 text-sm">
                         {lesson.externalLinks.map((link, index) => (
                             <li key={`${link.url}-${index}`}>
-                                <a
-                                    href={link.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-700"
-                                >
+                                <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
                                     {link.label || link.url}
                                 </a>
                             </li>
@@ -842,9 +918,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, timeLogs, o
                     <button
                         type="button"
                         onClick={onBack}
-                        className="flex items-center text-coya-primary hover:opacity-90 transition-opacity mb-4 text-sm font-medium"
+                        className="mb-4 flex items-center gap-2 text-sm font-medium text-coya-primary transition-opacity hover:opacity-90"
                     >
-                        <i className="fas fa-arrow-left mr-2"></i>
+                        <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
                         {t('back_to_courses')}
                     </button>
                     <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -853,8 +929,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, timeLogs, o
                                 <img src={course.thumbnailUrl} alt="" className="w-full h-full object-cover" />
                             </div>
                         ) : (
-                            <div className="w-full md:w-56 shrink-0 rounded-coya border border-coya-border aspect-video bg-coya-primary/10 flex items-center justify-center">
-                                <i className="fas fa-graduation-cap text-4xl text-coya-primary/80" aria-hidden />
+                            <div className="flex aspect-video w-full shrink-0 items-center justify-center rounded-coya border border-coya-border bg-coya-primary/10 md:w-56">
+                                <GraduationCap className="h-12 w-12 text-coya-primary/80" aria-hidden />
                             </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -871,8 +947,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, timeLogs, o
                                     <p className="text-2xl font-bold text-coya-primary">{course.progress || 0}%</p>
                                 </div>
                                 <div className="h-8 w-px bg-coya-border hidden sm:block" />
-                                <p className="text-sm text-coya-text-muted">
-                                    <i className="fas fa-chalkboard-teacher mr-1 text-coya-primary" />
+                                <p className="inline-flex items-center gap-1.5 text-sm text-coya-text-muted">
+                                    <User className="h-4 w-4 shrink-0 text-coya-primary" aria-hidden />
                                     {course.instructor}
                                 </p>
                             </div>
@@ -882,43 +958,47 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, timeLogs, o
             </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex items-center gap-3">
-                        <div className="bg-blue-100 p-3 rounded-lg">
-                            <i className="fas fa-list text-blue-600"></i>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+                        <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
+                            <BookOpen className="h-5 w-5" aria-hidden />
                         </div>
                         <div>
-                            <p className="text-xs text-gray-600 uppercase">Modules</p>
-                            <p className="text-xl font-bold text-gray-900">{course.modules?.length || 0}</p>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Modules</p>
+                            <p className="text-xl font-bold text-slate-900">{course.modules?.length || 0}</p>
                         </div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex items-center gap-3">
-                        <div className="bg-green-100 p-3 rounded-lg">
-                            <i className="fas fa-check-circle text-green-600"></i>
+                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+                        <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
+                            <CheckCircle2 className="h-5 w-5" aria-hidden />
                         </div>
                         <div>
-                            <p className="text-xs text-gray-600 uppercase">Leçons terminées</p>
-                            <p className="text-xl font-bold text-gray-900">{completedLessonsCount}/{totalLessons}</p>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Leçons terminées</p>
+                            <p className="text-xl font-bold text-slate-900">
+                                {completedLessonsCount}/{totalLessons}
+                            </p>
                         </div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex items-center gap-3">
-                        <div className="bg-purple-100 p-3 rounded-lg">
-                            <i className="fas fa-clock text-purple-600"></i>
+                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+                        <div className="rounded-xl bg-violet-50 p-3 text-violet-600">
+                            <Clock className="h-5 w-5" aria-hidden />
                         </div>
                         <div>
-                            <p className="text-xs text-gray-600 uppercase">Temps enregistré</p>
-                            <p className="text-xl font-bold text-gray-900">{formatMinutes(totalMinutesLogged)}</p>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Temps enregistré</p>
+                            <p className="text-xl font-bold text-slate-900">{formatMinutes(totalMinutesLogged)}</p>
                         </div>
                     </div>
                 </div>
 
                 {course.courseMaterials && course.courseMaterials.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-5">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                            <i className="fas fa-folder text-emerald-600"></i>
+                    <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+                        <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-slate-900">
+                            <Folder className="h-5 w-5 text-emerald-600" aria-hidden />
                             Ressources du cours
                         </h3>
-                        <p className="text-sm text-gray-500 mb-3">Documents fournis par l’instructeur (PDF, Word, Excel, images...).</p>
+                        <p className="mb-3 text-sm text-slate-600">
+                            Documents fournis par l’instructeur (PDF, Word, Excel, images…).
+                        </p>
                         <div className="flex flex-wrap gap-3">
                             {course.courseMaterials.map((doc: EvidenceDocument, idx: number) => (
                                 <a
@@ -927,9 +1007,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, timeLogs, o
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     download={doc.fileName}
-                                    className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 hover:bg-emerald-100 transition-all text-sm font-semibold"
+                                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
                                 >
-                                    <i className="fas fa-file-alt"></i>
+                                    <FileText className="h-4 w-4 shrink-0" aria-hidden />
                                     {doc.fileName}
                                 </a>
                             ))}
@@ -937,102 +1017,117 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, timeLogs, o
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-6">
-                    <aside className="bg-white border border-gray-100 rounded-xl shadow-sm p-4 space-y-4">
+                <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr]">
+                    <aside className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-semibold uppercase text-gray-500">Plan du cours</p>
-                                <p className="text-sm text-gray-600">{completedLessonsCount} leçons terminées sur {totalLessons}</p>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Plan du cours</p>
+                                <p className="text-sm text-slate-600">
+                                    {completedLessonsCount} leçons terminées sur {totalLessons}
+                                </p>
                             </div>
                         </div>
 
                         {isLoadingModules ? (
-                            <div className="text-center py-10">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600 mx-auto mb-3"></div>
-                                <p className="text-sm text-gray-500">Chargement du plan...</p>
+                            <div className="py-10 text-center">
+                                <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+                                <p className="text-sm text-slate-500">Chargement du plan…</p>
                             </div>
                         ) : course.modules && course.modules.length > 0 ? (
                             course.modules.map((module, index) => {
-                                const state = computeModuleStates[index] || { isLocked: false, lockedReason: '', awaitingValidation: false, moduleCompleted: false };
+                                const state = computeModuleStates[index] || {
+                                    isLocked: false,
+                                    lockedReason: '',
+                                    awaitingValidation: false,
+                                    moduleCompleted: false,
+                                };
                                 const completedSet = new Set(course.completedLessons || []);
                                 const lessons = module.lessons || [];
-                                const moduleCompletedCount = lessons.filter(lesson => completedSet.has(lesson.id)).length;
-                                const moduleProgress = lessons.length > 0 ? Math.round((moduleCompletedCount / lessons.length) * 100) : 100;
+                                const moduleCompletedCount = lessons.filter((lesson) => completedSet.has(lesson.id)).length;
+                                const moduleProgress =
+                                    lessons.length > 0 ? Math.round((moduleCompletedCount / lessons.length) * 100) : 100;
                                 const expanded = expandedModules[module.id] ?? false;
 
                                 return (
-                                    <div key={module.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                                    <div key={module.id} className="overflow-hidden rounded-2xl border border-slate-200/80">
                                         <button
                                             type="button"
-                                            onClick={() => setExpandedModules(prev => ({ ...prev, [module.id]: !expanded }))}
-                                            className="w-full bg-gray-50 hover:bg-gray-100 px-3 py-3 flex items-center justify-between"
+                                            onClick={() => setExpandedModules((prev) => ({ ...prev, [module.id]: !expanded }))}
+                                            className="flex w-full items-center justify-between bg-slate-50 px-3 py-3 text-left hover:bg-slate-100"
                                         >
-                                            <div className="text-left">
-                                                <p className="text-[10px] uppercase tracking-wide text-gray-500">Module {index + 1}</p>
-                                                <p className="text-sm font-semibold text-gray-800 truncate">{module.title}</p>
+                                            <div className="min-w-0 text-left">
+                                                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                                    Module {index + 1}
+                                                </p>
+                                                <p className="truncate text-sm font-semibold text-slate-900">{module.title}</p>
                                                 {state.awaitingValidation && (
-                                                    <p className="text-xs text-yellow-700 mt-1 flex items-center gap-1">
-                                                        <i className="fas fa-clipboard-check"></i>
+                                                    <p className="mt-1 flex items-center gap-1 text-xs text-amber-800">
+                                                        <ClipboardCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
                                                         En attente de validation
                                                     </p>
                                                 )}
                                                 {state.isLocked && state.lockedReason && (
-                                                    <p className="text-xs text-gray-500 mt-1">{state.lockedReason}</p>
+                                                    <p className="mt-1 text-xs text-slate-500">{state.lockedReason}</p>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-semibold text-emerald-600">{moduleProgress}%</span>
-                                                <i className={`fas ${expanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-gray-400`}></i>
+                                            <div className="flex shrink-0 items-center gap-2">
+                                                <span className="text-xs font-semibold text-blue-600">{moduleProgress}%</span>
+                                                {expanded ? (
+                                                    <ChevronUp className="h-4 w-4 text-slate-400" aria-hidden />
+                                                ) : (
+                                                    <ChevronDown className="h-4 w-4 text-slate-400" aria-hidden />
+                                                )}
                                             </div>
                                         </button>
 
                                         {expanded && (
-                                            <ul className="border-t border-gray-200 bg-white">
+                                            <ul className="border-t border-slate-200 bg-white">
                                                 {lessons.length === 0 && (
-                                                    <li className="px-3 py-3 text-xs text-gray-500 italic">
+                                                    <li className="px-3 py-3 text-xs italic text-slate-500">
                                                         Aucune leçon dans ce module
                                                     </li>
                                                 )}
-                                                {lessons.map(lesson => {
+                                                {lessons.map((lesson) => {
                                                     const isCompleted = completedSet.has(lesson.id);
                                                     const isInProgress = inProgressLessons.includes(lesson.id);
                                                     const isCurrent = selectedLesson?.id === lesson.id;
                                                     const isNext = nextLessonId === lesson.id;
                                                     const lessonLocked = state.isLocked && !isCompleted;
 
-                                                    let statusIcon = 'fa-circle';
-                                                    let statusColor = 'text-gray-400';
+                                                    let statusEl: React.ReactNode;
                                                     if (isCompleted) {
-                                                        statusIcon = 'fa-check-circle';
-                                                        statusColor = 'text-emerald-500';
+                                                        statusEl = <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" aria-hidden />;
                                                     } else if (lessonLocked) {
-                                                        statusIcon = 'fa-lock';
-                                                        statusColor = 'text-gray-400';
+                                                        statusEl = <Lock className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />;
                                                     } else if (isInProgress) {
-                                                        statusIcon = 'fa-play-circle';
-                                                        statusColor = 'text-blue-500';
+                                                        statusEl = <Play className="h-4 w-4 shrink-0 text-blue-600" aria-hidden />;
                                                     } else if (isNext) {
-                                                        statusIcon = 'fa-arrow-right';
-                                                        statusColor = 'text-purple-500';
+                                                        statusEl = <ArrowRight className="h-4 w-4 shrink-0 text-violet-600" aria-hidden />;
+                                                    } else {
+                                                        statusEl = <Circle className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />;
                                                     }
 
                                                     return (
-                                                        <li key={lesson.id} className="border-b border-gray-100 last:border-b-0">
+                                                        <li key={lesson.id} className="border-b border-slate-100 last:border-b-0">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
                                                                     if (lessonLocked) return;
                                                                     setSelectedLessonId(lesson.id);
-                                                                    setExpandedModules(prev => ({ ...prev, [module.id]: true }));
+                                                                    setExpandedModules((prev) => ({ ...prev, [module.id]: true }));
                                                                 }}
-                                                                className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm transition ${
-                                                                    isCurrent ? 'bg-emerald-50 border-l-4 border-emerald-500' : 'hover:bg-gray-50'
-                                                                } ${lessonLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                                                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition ${
+                                                                    isCurrent
+                                                                        ? 'border-l-4 border-emerald-500 bg-emerald-50'
+                                                                        : 'hover:bg-slate-50'
+                                                                } ${lessonLocked ? 'cursor-not-allowed opacity-60' : ''}`}
                                                             >
-                                                                <i className={`fas ${statusIcon} ${statusColor}`}></i>
-                                                                <span className="flex-1 truncate">{lesson.title}</span>
+                                                                {statusEl}
+                                                                <span className="min-w-0 flex-1 truncate">{lesson.title}</span>
                                                                 {isNext && !isCompleted && (
-                                                                    <span className="text-xs text-purple-600 font-semibold">Suivant</span>
+                                                                    <span className="shrink-0 text-xs font-semibold text-violet-600">
+                                                                        Suivant
+                                                                    </span>
                                                                 )}
                                                             </button>
                                                         </li>
@@ -1044,19 +1139,22 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, timeLogs, o
                                 );
                             })
                         ) : (
-                            <div className="text-sm text-gray-500">Aucun module n’a encore été publié.</div>
+                            <div className="text-sm text-slate-500">Aucun module n’a encore été publié.</div>
                         )}
                     </aside>
 
                     <div className="space-y-6">
                         {nextLessonId && (
-                            <button
+                            <Button
+                                type="button"
+                                variant="primary"
+                                size="lg"
+                                className="w-full !bg-slate-900 hover:!bg-slate-800"
+                                leftIcon={<PlayCircle className="h-5 w-5" aria-hidden />}
                                 onClick={handleContinue}
-                                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition-all shadow flex items-center justify-center"
                             >
-                                <i className="fas fa-play-circle mr-2"></i>
                                 Reprendre là où vous vous êtes arrêté
-                            </button>
+                            </Button>
                         )}
 
                         {selectedLesson ? (
@@ -1106,9 +1204,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, timeLogs, o
                         )}
 
                         {selectedModule?.evidenceDocuments && selectedModule.evidenceDocuments.length > 0 && (
-                            <div className="bg-white rounded-xl shadow-lg p-5 border border-emerald-100">
-                                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                    <i className="fas fa-folder-open text-emerald-600"></i>
+                            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+                                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                    <FolderOpen className="h-4 w-4 text-emerald-600" aria-hidden />
                                     Ressources du module
                                 </h3>
                                 <div className="flex flex-wrap gap-3">
@@ -1119,9 +1217,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, timeLogs, o
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             download={doc.fileName}
-                                            className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 hover:bg-emerald-100 transition-all text-sm font-semibold"
+                                            className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
                                         >
-                                            <i className="fas fa-file-alt"></i>
+                                            <FileText className="h-4 w-4 shrink-0" aria-hidden />
                                             {doc.fileName}
                                         </a>
                                     ))}
@@ -1129,60 +1227,66 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, timeLogs, o
                             </div>
                         )}
 
-                        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div>
-                                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-600 mb-1">
-                                        <i className="fas fa-user text-emerald-600"></i>
+                                    <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-600">
+                                        <User className="h-4 w-4 text-blue-600" aria-hidden />
                                         {t('instructor')}
                                     </div>
-                                    <p className="text-gray-800 font-medium">{course.instructor}</p>
+                                    <p className="font-medium text-slate-900">{course.instructor}</p>
                                 </div>
                                 <div>
-                                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-600 mb-1">
-                                        <i className="fas fa-hourglass-half text-emerald-600"></i>
+                                    <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-600">
+                                        <Hourglass className="h-4 w-4 text-violet-600" aria-hidden />
                                         Durée estimée
                                     </div>
-                                    <p className="text-gray-800 font-medium">{course.duration}</p>
+                                    <p className="font-medium text-slate-900">{course.duration}</p>
                                 </div>
                                 <div>
-                                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-600 mb-1">
-                                        <i className="fas fa-chart-line text-emerald-600"></i>
+                                    <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-600">
+                                        <LineChart className="h-4 w-4 text-emerald-600" aria-hidden />
                                         Progression
                                     </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                    <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
                                         <div
-                                            className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 h-3 rounded-full transition-all duration-500"
+                                            className="h-3 rounded-full bg-blue-600 transition-all duration-500"
                                             style={{ width: `${course.progress || 0}%` }}
-                                        ></div>
+                                        />
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1">{completedLessonsCount} leçons sur {totalLessons}</p>
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        {completedLessonsCount} leçons sur {totalLessons}
+                                    </p>
                                 </div>
                                 <div className="flex items-center md:justify-end">
-                                    <button
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="md"
+                                        leftIcon={<Timer className="h-4 w-4" aria-hidden />}
                                         onClick={() => setLogTimeModalOpen(true)}
-                                        className="px-4 py-2 border-2 border-emerald-600 text-emerald-600 rounded-lg font-semibold hover:bg-emerald-50 transition-all flex items-center gap-2"
+                                        className="!border-2 !border-coya-green !text-coya-green hover:!bg-emerald-50"
                                     >
-                                        <i className="fas fa-stopwatch"></i>
                                         {t('log_time')}
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
 
                             {course.requiresFinalValidation && (
-                                <div className="mt-4 p-4 border border-purple-200 bg-purple-50 rounded-lg flex items-start gap-3">
-                                    <i className="fas fa-shield-alt text-purple-600 mt-1"></i>
+                                <div className="mt-4 flex items-start gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-4">
+                                    <Shield className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" aria-hidden />
                                     <div>
-                                        <p className="text-sm font-semibold text-purple-800">Validation finale requise</p>
-                                        <p className="text-xs text-purple-700">
-                                            Une validation manuelle sera effectuée par un instructeur une fois toutes les leçons terminées.
+                                        <p className="text-sm font-semibold text-violet-900">Validation finale requise</p>
+                                        <p className="text-xs text-violet-800">
+                                            Une validation manuelle sera effectuée par un instructeur une fois toutes les leçons
+                                            terminées.
                                         </p>
                                     </div>
                                 </div>
                             )}
 
                             {course.youtubeUrl && (
-                                <div className="mt-6 pt-6 border-t border-gray-200">
+                                <div className="mt-6 border-t border-slate-200 pt-6">
                                     <LinkPreview url={course.youtubeUrl} />
                                 </div>
                             )}

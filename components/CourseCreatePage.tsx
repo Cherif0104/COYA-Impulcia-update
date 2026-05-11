@@ -1,8 +1,28 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import {
+  ArrowLeft,
+  Loader2,
+  Cloud,
+  FileText,
+  FolderOpen,
+  Globe2,
+  Info,
+  Link2,
+  Network,
+  Plus,
+  Save,
+  Search,
+  Trash2,
+  Upload,
+  UserCheck,
+  Users,
+  Video,
+} from 'lucide-react';
 import { Course, User, Module, Lesson, EvidenceDocument, Role, Programme, CourseQuizQuestion, CourseAudienceSegment } from '../types';
 import DataAdapter from '../services/dataAdapter';
 import * as programmeService from '../services/programmeService';
 import OrganizationService from '../services/organizationService';
+import { Button } from './ui/Button';
 
 const genQuizId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -537,47 +557,52 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-50 z-50 overflow-y-auto">
-            {/* Header sticky */}
-            <div className="sticky top-0 bg-gradient-to-r from-emerald-600 to-blue-600 text-white shadow-lg z-10">
-                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={onClose}
-                                className="text-white hover:text-gray-200 transition-colors"
-                            >
-                                <i className="fas fa-arrow-left text-xl"></i>
-                            </button>
-                            <div>
-                                <h1 className="text-2xl font-bold">
-                                    {isEditMode ? 'Modifier le cours' : 'Nouveau cours'}
-                                </h1>
-                                <p className="text-emerald-50 text-sm mt-1">
-                                    {isEditMode ? 'Modifiez les informations du cours' : 'Créez un nouveau cours de formation'}
-                                </p>
-                            </div>
-                        </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-50">
+            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+                <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
+                    <div className="flex min-w-0 items-center gap-4">
                         <button
-                            type="submit"
-                            form="course-form"
-                            className="bg-white text-emerald-600 font-bold py-2 px-6 rounded-lg hover:bg-emerald-50 transition-all shadow-md"
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-xl border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50"
+                            aria-label="Retour"
                         >
-                            <i className="fas fa-save mr-2"></i>
-                            Enregistrer
+                            <ArrowLeft className="h-5 w-5" aria-hidden />
                         </button>
+                        <div className="min-w-0">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Studio formations</p>
+                            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+                                {isEditMode ? 'Modifier le cours' : 'Nouveau cours'}
+                            </h1>
+                            <p className="mt-0.5 text-sm text-slate-600">
+                                {isEditMode ? 'Mettez à jour le contenu et la structure du parcours.' : 'Créez un parcours pour votre catalogue.'}
+                            </p>
+                        </div>
                     </div>
+                    <Button
+                        type="submit"
+                        form="course-form"
+                        variant="primary"
+                        size="md"
+                        leftIcon={<Save className="h-4 w-4" aria-hidden />}
+                        className="shrink-0"
+                    >
+                        Enregistrer
+                    </Button>
                 </div>
             </div>
 
-            {/* Formulaire scrollable */}
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <form id="course-form" onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8">
+            <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+                <form
+                    id="course-form"
+                    onSubmit={handleSubmit}
+                    className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-8"
+                >
                     {/* Course Details */}
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="mb-2 block text-sm font-medium text-slate-700">
                                     Titre du cours *
                                 </label>
                                 <input
@@ -585,30 +610,30 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                     name="title"
                                     value={formData.title}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                    className="w-full rounded-xl border border-slate-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                     placeholder="Ex: Digital Marketing Fundamentals"
                                     required
                                 />
                                 {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
                                     Instructeur *
                                 </label>
                                 <div className="space-y-3">
                                     <div className="relative">
-                                        <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
                                 <input
                                     type="text"
                                             value={instructorFilter}
                                             onChange={(event) => setInstructorFilter(event.target.value)}
                                             placeholder="Rechercher un instructeur..."
-                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                         />
                                     </div>
                                     {isInstructorSearchLoading && (
-                                        <p className="text-xs text-gray-500 flex items-center gap-2">
-                                            <i className="fas fa-circle-notch fa-spin"></i>
+                                        <p className="text-xs text-slate-500 flex items-center gap-2">
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                                             Recherche d'instructeurs...
                                         </p>
                                     )}
@@ -616,7 +641,7 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                         name="instructorId"
                                         value={formData.instructorId}
                                         onChange={handleInstructorSelection}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                     required
                                     >
                                         <option value="" disabled>Sélectionnez un profil instructeur</option>
@@ -631,12 +656,9 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                         {filteredInstructors.length === 0 && (
                                             <option value="" disabled>Aucun instructeur trouvé</option>
                                         )}
-                                        {filteredInstructors.length === 0 && (
-                                            <option value="" disabled>Aucun instructeur trouvé</option>
-                                        )}
                                     </select>
                                     {formData.instructor && (
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-slate-500">
                                             Instructeur sélectionné : <span className="font-semibold text-emerald-600">{formData.instructor}</span>
                                         </p>
                                     )}
@@ -646,7 +668,7 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                         </div>
                         
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
                                 Description *
                             </label>
                             <textarea
@@ -654,7 +676,7 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                 value={formData.description}
                                 onChange={handleChange}
                                 rows={4}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                 placeholder="Description détaillée du cours..."
                                 required
                             />
@@ -663,22 +685,22 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Durée</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Durée</label>
                                 <input
                                     name="duration"
                                     value={formData.duration}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                     placeholder="Ex: 6 Weeks"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Niveau</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Niveau</label>
                                 <select
                                     name="level"
                                     value={formData.level}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                 >
                                     <option value="beginner">Débutant</option>
                                     <option value="intermediate">Intermédiaire</option>
@@ -689,17 +711,17 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Catégorie</label>
                                 <input
                                     name="category"
                                     value={formData.category}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                     placeholder="Ex: Marketing, Business, Technology"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Prix (XOF)</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Prix (XOF)</label>
                                 <input
                                     name="price"
                                     type="number"
@@ -707,19 +729,19 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                     onChange={handleChange}
                                     min="0"
                                     step="1000"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                 />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Statut</label>
                                 <select
                                     name="status"
                                     value={formData.status}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                 >
                                     <option value="draft">Brouillon</option>
                                     <option value="published">Publié</option>
@@ -727,13 +749,13 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">URL de l'image de couverture</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">URL de l'image de couverture</label>
                                 <input
                                     name="thumbnailUrl"
                                     type="url"
                                     value={formData.thumbnailUrl}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                     placeholder="https://example.com/image.jpg"
                                 />
                             </div>
@@ -741,42 +763,42 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
 
                         {/* Ciblage des utilisateurs */}
                         <div className="border-t pt-6">
-                            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                                <i className="fas fa-users mr-2 text-emerald-600"></i>
+                            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-800">
+                                <Users className="h-5 w-5 text-emerald-600" aria-hidden />
                                 Cours destiné à
                             </h3>
                             <div className="space-y-3">
-                                <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <div className="flex items-center p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
                                     <input type="radio" name="targetUsers" value="all" checked={formData.targetAllUsers} onChange={handleTargetUsersChange} className="mr-3" />
-                                    <label className="text-sm font-medium text-gray-700 cursor-pointer flex-1 flex items-center">
-                                        <i className="fas fa-globe text-emerald-600 mr-2"></i>
+                                    <label className="text-sm font-medium text-slate-700 cursor-pointer flex-1 flex items-center">
+                                        <Globe2 className="mr-2 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
                                         Tous les utilisateurs
                                     </label>
                                 </div>
-                                <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <div className="flex items-center p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
                                     <input type="radio" name="targetUsers" value="specific" checked={!formData.targetAllUsers} onChange={handleTargetUsersChange} className="mr-3" />
-                                    <label className="text-sm font-medium text-gray-700 cursor-pointer flex-1 flex items-center">
-                                        <i className="fas fa-user-check text-blue-600 mr-2"></i>
+                                    <label className="text-sm font-medium text-slate-700 cursor-pointer flex-1 flex items-center">
+                                        <UserCheck className="mr-2 h-4 w-4 shrink-0 text-blue-600" aria-hidden />
                                         Utilisateurs sélectionnés
                                     </label>
                                 </div>
                                 {!formData.targetAllUsers && (
-                                    <div className="ml-6 mt-2 border-2 border-emerald-200 rounded-lg p-4 max-h-64 overflow-y-auto bg-gray-50 shadow-inner">
+                                    <div className="ml-6 mt-2 border-2 border-emerald-200 rounded-lg p-4 max-h-64 overflow-y-auto bg-slate-50 shadow-inner">
                                         <div className="flex flex-wrap gap-3 mb-4">
                                             <div className="relative flex-1 min-w-[180px]">
-                                                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
                                                 <input
                                                     type="text"
                                                     value={targetSearch}
                                                     onChange={(event) => setTargetSearch(event.target.value)}
                                                     placeholder="Rechercher par nom, email..."
-                                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                                                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                                                 />
                                             </div>
                                             <select
                                                 value={targetRoleFilter}
                                                 onChange={(event) => setTargetRoleFilter(event.target.value as Role | 'all')}
-                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                                                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                                             >
                                                 <option value="all">Tous les rôles</option>
                                                 <option value="student">Étudiants</option>
@@ -791,9 +813,9 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                 <option value="employer">Employeurs</option>
                                             </select>
                                         </div>
-                                        <p className="text-xs font-semibold text-gray-600 mb-3 uppercase">Sélectionnez les utilisateurs :</p>
+                                        <p className="text-xs font-semibold text-slate-600 mb-3 uppercase">Sélectionnez les utilisateurs :</p>
                                         {filteredTargetUsers.length === 0 ? (
-                                            <p className="text-sm text-gray-500 italic">Aucun utilisateur disponible</p>
+                                            <p className="text-sm text-slate-500 italic">Aucun utilisateur disponible</p>
                                         ) : (
                                             filteredTargetUsers.map(user => {
                                                 const userIdToUse = user.profileId || String(user.id);
@@ -801,8 +823,8 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                     <label key={userIdToUse} className="flex items-center py-2 px-3 hover:bg-white rounded-md cursor-pointer transition-colors mb-1">
                                                         <input type="checkbox" checked={formData.selectedUserIds.includes(userIdToUse)} onChange={() => handleUserToggle(userIdToUse)} className="mr-3 h-4 w-4" />
                                                         <div className="flex-1">
-                                                            <span className="text-sm font-medium text-gray-800 block">{user.fullName || user.name}</span>
-                                                            <span className="text-xs text-gray-500">{user.email} • {user.role}</span>
+                                                            <span className="text-sm font-medium text-slate-800 block">{user.fullName || user.name}</span>
+                                                            <span className="text-xs text-slate-500">{user.email} • {user.role}</span>
                                                         </div>
                                                     </label>
                                                 );
@@ -815,20 +837,20 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
 
                         {/* Lien module Programme & parcours apprenant */}
                         <div className="space-y-4 border-t pt-6">
-                            <h3 className="text-lg font-bold text-gray-800 flex items-center mb-2">
-                                <i className="fas fa-project-diagram text-emerald-600 mr-2"></i>
+                            <h3 className="mb-2 flex items-center gap-2 text-lg font-bold text-slate-800">
+                                <Network className="h-5 w-5 text-emerald-600" aria-hidden />
                                 Programme & public cible
                             </h3>
-                            <p className="text-xs text-gray-600 mb-3">
+                            <p className="text-xs text-slate-600 mb-3">
                                 Rattachez la formation à un programme (bailleurs, participants, collecte) et précisez le type de parcours pour l’affichage côté apprenant.
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Programme COYA (optionnel)</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Programme COYA (optionnel)</label>
                                     <select
                                         value={formData.programmeId}
                                         onChange={(e) => setFormData((prev) => ({ ...prev, programmeId: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                                     >
                                         <option value="">— Aucun rattachement —</option>
                                         {programmes.map((p) => (
@@ -837,11 +859,11 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Parcours / présentation</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Parcours / présentation</label>
                                     <select
                                         value={formData.audienceSegment}
                                         onChange={(e) => setFormData((prev) => ({ ...prev, audienceSegment: e.target.value as CourseAudienceSegment }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                                     >
                                         <option value="general">Tous publics</option>
                                         <option value="incubated">Incubés / entrepreneurs accompagnés</option>
@@ -860,10 +882,10 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                         className="mt-1 h-4 w-4"
                                     />
                                     <span>
-                                        <span className="text-sm font-medium text-gray-800">
+                                        <span className="text-sm font-medium text-slate-800">
                                             Activer la certification / attestation (MVP)
                                         </span>
-                                        <span className="block text-xs text-gray-600 mt-1">
+                                        <span className="block text-xs text-slate-600 mt-1">
                                             Les attestations seront stockées dans <code className="text-[10px]">learning_certificates</code>{' '}
                                             après migration ; l’émission automatisée arrive dans une prochaine itération.
                                         </span>
@@ -871,7 +893,7 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                 </label>
                                 {formData.certificationEnabled ? (
                                     <div className="mt-3">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
                                             Libellé affiché aux apprenants
                                         </label>
                                         <input
@@ -881,7 +903,7 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                 setFormData((prev) => ({ ...prev, certificationLabel: e.target.value }))
                                             }
                                             placeholder="Ex. Attestation de participation"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                                         />
                                     </div>
                                 ) : null}
@@ -890,21 +912,21 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
 
                         {/* Liens YouTube et Drive */}
                         <div className="space-y-4 border-t pt-6">
-                            <h3 className="text-lg font-bold text-gray-800 flex items-center mb-4">
-                                <i className="fas fa-link text-emerald-600 mr-2"></i>
+                            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-800">
+                                <Link2 className="h-5 w-5 text-emerald-600" aria-hidden />
                                 Ressources et liens externes
                             </h3>
                             
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                                 <p className="text-sm text-blue-800">
-                                    <i className="fas fa-info-circle mr-2"></i>
+                                    <Info className="mr-2 inline h-4 w-4 shrink-0 text-blue-700" aria-hidden />
                                     Ajoutez des liens vers des vidéos, documents ou ressources pédagogiques externes
                                 </p>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    <i className="fab fa-youtube text-red-600 mr-2"></i>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    <Video className="mr-2 inline h-4 w-4 shrink-0 text-red-600" aria-hidden />
                                     Vidéo YouTube
                                 </label>
                                 <input 
@@ -912,15 +934,15 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                     type="url" 
                                     value={formData.youtubeUrl} 
                                     onChange={handleChange} 
-                                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" 
+                                    className="mt-1 block w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" 
                                     placeholder="https://www.youtube.com/watch?v=..." 
                                 />
-                                <p className="text-xs text-gray-500 mt-2">Exemple: https://www.youtube.com/watch?v=dQw4w9WgXcQ</p>
+                                <p className="text-xs text-slate-500 mt-2">Exemple: https://www.youtube.com/watch?v=dQw4w9WgXcQ</p>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    <i className="fab fa-google-drive text-blue-600 mr-2"></i>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    <Cloud className="mr-2 inline h-4 w-4 shrink-0 text-blue-600" aria-hidden />
                                     Google Drive / OneDrive
                                 </label>
                                 <input 
@@ -928,50 +950,50 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                     type="url" 
                                     value={formData.driveUrl} 
                                     onChange={handleChange} 
-                                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                                    className="mt-1 block w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                                     placeholder="https://drive.google.com/file/d/..." 
                                 />
-                                <p className="text-xs text-gray-500 mt-2">Lien vers un dossier ou fichier contenant les ressources du cours</p>
+                                <p className="text-xs text-slate-500 mt-2">Lien vers un dossier ou fichier contenant les ressources du cours</p>
                             </div>
                         </div>
 
                         {/* Modules & Lessons */}
                         <div className="border-t pt-6">
                             <div className="bg-gradient-to-r from-blue-50 to-emerald-50 border border-blue-200 rounded-lg p-4 mb-4">
-                                <h3 className="text-lg font-bold text-gray-800 flex items-center mb-2">
-                                    <i className="fas fa-sitemap text-emerald-600 mr-2"></i>
-                                    Modules du Cours
+                                <h3 className="mb-2 flex items-center gap-2 text-lg font-bold text-slate-800">
+                                    <Network className="h-5 w-5 text-emerald-600" aria-hidden />
+                                    Modules du cours
                                 </h3>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-slate-600">
                                     Organisez votre cours en modules. Chaque module peut contenir plusieurs leçons que les étudiants pourront valider progressivement.
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <label className="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
+                                <label className="flex items-start gap-3 bg-white border border-slate-200 rounded-lg p-4 shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={formData.requiresFinalValidation}
                                         onChange={() => setFormData(prev => ({ ...prev, requiresFinalValidation: !prev.requiresFinalValidation }))}
-                                        className="mt-1 h-5 w-5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                                        className="mt-1 h-5 w-5 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
                                     />
                                     <div>
-                                        <span className="font-semibold text-sm text-gray-800 block">Validation finale du cours</span>
-                                        <span className="text-xs text-gray-500">
+                                        <span className="font-semibold text-sm text-slate-800 block">Validation finale du cours</span>
+                                        <span className="text-xs text-slate-500">
                                             Activez pour nécessiter une validation manuelle à la fin du cours (par un instructeur ou administrateur).
                                         </span>
                                     </div>
                                 </label>
-                                <label className="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
+                                <label className="flex items-start gap-3 bg-white border border-slate-200 rounded-lg p-4 shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={formData.sequentialModules}
                                         onChange={() => setFormData(prev => ({ ...prev, sequentialModules: !prev.sequentialModules }))}
-                                        className="mt-1 h-5 w-5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                                        className="mt-1 h-5 w-5 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
                                     />
                                     <div>
-                                        <span className="font-semibold text-sm text-gray-800 block">Progression séquentielle</span>
-                                        <span className="text-xs text-gray-500">
+                                        <span className="font-semibold text-sm text-slate-800 block">Progression séquentielle</span>
+                                        <span className="text-xs text-slate-500">
                                             Oblige les apprenants à valider chaque module avant de débloquer le suivant.
                                         </span>
                                     </div>
@@ -979,31 +1001,31 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                             </div>
 
                             <div className="bg-white border border-emerald-200 rounded-lg p-4 mb-6 shadow-sm">
-                                <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                    <i className="fas fa-folder-open text-emerald-600"></i>
+                                <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                    <FolderOpen className="h-4 w-4 text-emerald-600" aria-hidden />
                                     Ressources du cours
                                 </h4>
-                                <p className="text-xs text-gray-500 mb-4">
+                                <p className="text-xs text-slate-500 mb-4">
                                     Ajoutez des documents (PDF, Word, Excel, images) accessibles depuis l’espace apprenant.
                                 </p>
                                 {formData.courseMaterials && formData.courseMaterials.length > 0 && (
                                     <ul className="space-y-2 mb-4">
                                         {formData.courseMaterials.map((document, index) => (
-                                            <li key={`${document.fileName}-${index}`} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md text-sm">
+                                            <li key={`${document.fileName}-${index}`} className="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-md text-sm">
                                                 <span className="truncate flex-1">{document.fileName}</span>
                                                 <button
                                                     type="button"
                                                     onClick={() => removeCourseMaterial(index)}
                                                     className="text-red-500 hover:text-red-700 ml-3"
                                                 >
-                                                    <i className="fas fa-trash"></i>
+                                                    <Trash2 className="h-4 w-4" aria-hidden />
                                                 </button>
                                             </li>
                                         ))}
                                     </ul>
                                 )}
                                 <label className="inline-flex items-center gap-2 px-4 py-2 border border-dashed border-emerald-400 rounded-lg text-emerald-600 hover:text-emerald-700 hover:border-emerald-600 cursor-pointer transition-colors text-sm font-semibold">
-                                    <i className="fas fa-cloud-upload-alt"></i>
+                                    <Upload className="h-4 w-4" aria-hidden />
                                     Importer des fichiers
                                     <input
                                         type="file"
@@ -1029,12 +1051,12 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                 />
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 cursor-pointer">
+                                                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
                                                     <input
                                                         type="checkbox"
                                                         checked={module.requiresValidation ?? false}
                                                         onChange={() => handleModuleBooleanToggle(mIndex, 'requiresValidation')}
-                                                        className="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                                                        className="h-4 w-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
                                                     />
                                                     Validation requise
                                                 </label>
@@ -1044,7 +1066,7 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                             type="checkbox"
                                                             checked={module.unlocksNextModule ?? false}
                                                             onChange={() => handleModuleBooleanToggle(mIndex, 'unlocksNextModule')}
-                                                            className="h-4 w-4 text-blue-500 border-gray-300 rounded focus:ring-blue-400"
+                                                            className="h-4 w-4 text-blue-500 border-slate-300 rounded focus:ring-blue-400"
                                                         />
                                                         Débloque le module suivant
                                                     </label>
@@ -1055,15 +1077,15 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                 className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded-lg transition-colors"
                                                 title="Supprimer ce module"
                                             >
-                                                <i className="fas fa-trash"></i>
+                                                <Trash2 className="h-4 w-4" aria-hidden />
                                             </button>
                                             </div>
                                         </div>
                                         
                                         <div className="ml-8 mt-3 space-y-2">
-                                            <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Leçons :</p>
+                                            <p className="text-xs font-semibold text-slate-600 uppercase mb-2">Leçons :</p>
                                             {module.lessons.length === 0 && (
-                                                <p className="text-xs text-gray-400 italic mb-2">Aucune leçon ajoutée</p>
+                                                <p className="text-xs text-slate-400 italic mb-2">Aucune leçon ajoutée</p>
                                             )}
                                             {module.lessons.map((lesson, lIndex) => (
                                                 <div key={lesson.id} className="bg-white border border-emerald-100 rounded-lg shadow-sm p-4 space-y-3">
@@ -1072,21 +1094,21 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                         <div className="flex-1 space-y-3">
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                                 <div>
-                                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Titre de la leçon</label>
+                                                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Titre de la leçon</label>
                                                     <input 
                                                         value={lesson.title} 
                                                         onChange={(e) => handleLessonChange(mIndex, lIndex, 'title', e.target.value)} 
                                                         placeholder="Titre de la leçon"
-                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                                                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                                                                     />
                                                                 </div>
                                                                 <div className="grid grid-cols-2 gap-3">
                                                                     <div>
-                                                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>
+                                                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Type</label>
                                                                         <select
                                                                             value={lesson.type}
                                                                             onChange={(e) => handleLessonChange(mIndex, lIndex, 'type', e.target.value)}
-                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                                                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                                                                         >
                                                                             <option value="video">Vidéo</option>
                                                                             <option value="reading">Lecture</option>
@@ -1094,37 +1116,37 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                                         </select>
                                                                     </div>
                                                                     <div>
-                                                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Durée (ex: 15 min)</label>
+                                                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Durée (ex: 15 min)</label>
                                                     <input 
                                                         value={lesson.duration} 
                                                         onChange={(e) => handleLessonChange(mIndex, lIndex, 'duration', e.target.value)} 
                                                                             placeholder="15 min"
-                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                                                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                                                                         />
                                                                     </div>
                                                                 </div>
                                                             </div>
 
                                                             <div>
-                                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Description</label>
+                                                                <label className="block text-xs font-semibold text-slate-600 mb-1">Description</label>
                                                                 <textarea
                                                                     value={lesson.description || ''}
                                                                     onChange={(e) => handleLessonChange(mIndex, lIndex, 'description', e.target.value)}
                                                                     placeholder="Ajoutez un résumé de la leçon..."
-                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm min-h-[70px]"
+                                                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm min-h-[70px]"
                                                                 />
                                                             </div>
 
                                                             <div>
-                                                                <label className="block text-xs font-semibold text-gray-600 mb-1">Lien principal</label>
+                                                                <label className="block text-xs font-semibold text-slate-600 mb-1">Lien principal</label>
                                                                 <input
                                                                     type="url"
                                                                     value={lesson.contentUrl || ''}
                                                                     onChange={(e) => handleLessonChange(mIndex, lIndex, 'contentUrl', e.target.value)}
                                                                     placeholder="https://..."
-                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                                                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                                                                 />
-                                                                <p className="text-[11px] text-gray-500 mt-1">YouTube, lien vidéo direct (.mp4), ou PDF : affichage intégré dans la plateforme pour les apprenants.</p>
+                                                                <p className="text-[11px] text-slate-500 mt-1">YouTube, lien vidéo direct (.mp4), ou PDF : affichage intégré dans la plateforme pour les apprenants.</p>
                                                             </div>
 
                                                             {lesson.type === 'quiz' && (
@@ -1133,7 +1155,7 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                                     {(lesson.quizQuestions || []).map((q, qIdx) => (
                                                                         <div key={q.id} className="border border-amber-100 rounded-md p-2 bg-white space-y-2">
                                                                             <div className="flex flex-wrap gap-2 items-center justify-between">
-                                                                                <span className="text-[10px] font-semibold text-gray-500">Question {qIdx + 1}</span>
+                                                                                <span className="text-[10px] font-semibold text-slate-500">Question {qIdx + 1}</span>
                                                                                 <button
                                                                                     type="button"
                                                                                     className="text-[10px] text-red-600"
@@ -1154,10 +1176,10 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                                                     return { ...l, quizQuestions: qs };
                                                                                 })}
                                                                                 placeholder="Intitulé de la question"
-                                                                                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                                                                                className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
                                                                             />
                                                                             <div className="flex gap-2 items-center text-xs">
-                                                                                <span className="text-gray-600">Mode :</span>
+                                                                                <span className="text-slate-600">Mode :</span>
                                                                                 <select
                                                                                     value={q.mode}
                                                                                     onChange={(e) => updateLesson(mIndex, lIndex, (l) => {
@@ -1165,7 +1187,7 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                                                         qs[qIdx] = { ...qs[qIdx], mode: e.target.value as 'single' | 'multiple' };
                                                                                         return { ...l, quizQuestions: qs };
                                                                                     })}
-                                                                                    className="border border-gray-300 rounded px-2 py-1"
+                                                                                    className="border border-slate-300 rounded px-2 py-1"
                                                                                 >
                                                                                     <option value="single">Une bonne réponse</option>
                                                                                     <option value="multiple">Plusieurs bonnes réponses</option>
@@ -1183,7 +1205,7 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                                                                 qs[qIdx] = { ...qs[qIdx], choices: ch };
                                                                                                 return { ...l, quizQuestions: qs };
                                                                                             })}
-                                                                                            className="flex-1 min-w-[120px] px-2 py-1 border border-gray-200 rounded"
+                                                                                            className="flex-1 min-w-[120px] px-2 py-1 border border-slate-200 rounded"
                                                                                             placeholder={`Choix ${cIdx + 1}`}
                                                                                         />
                                                                                         <label className="flex items-center gap-1 whitespace-nowrap">
@@ -1258,9 +1280,9 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
 
                                                             <div>
                                                                 <div className="flex items-center justify-between mb-2">
-                                                                    <label className="text-xs font-semibold text-gray-600">Pièces jointes</label>
+                                                                    <label className="text-xs font-semibold text-slate-600">Pièces jointes</label>
                                                                     <label className="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold text-emerald-600 border border-emerald-300 rounded cursor-pointer hover:bg-emerald-50 transition">
-                                                                        <i className="fas fa-upload"></i>
+                                                                        <Upload className="h-3.5 w-3.5" aria-hidden />
                                                                         Ajouter un fichier
                                                                         <input
                                                                             type="file"
@@ -1272,36 +1294,37 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                                 {lesson.attachments && lesson.attachments.length > 0 ? (
                                                                     <ul className="space-y-1 text-xs">
                                                                         {lesson.attachments.map((attachment, attachmentIdx) => (
-                                                                            <li key={`${attachment.fileName}-${attachmentIdx}`} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded">
+                                                                            <li key={`${attachment.fileName}-${attachmentIdx}`} className="flex items-center justify-between bg-slate-100 px-3 py-2 rounded">
                                                                                 <span className="truncate">{attachment.fileName}</span>
                                                                                 <button
                                                                                     type="button"
                                                                                     onClick={() => handleRemoveLessonAttachment(mIndex, lIndex, attachmentIdx)}
                                                                                     className="text-red-500 hover:text-red-700"
                                                                                 >
-                                                                                    <i className="fas fa-times"></i>
+                                                                                    <X className="h-3.5 w-3.5" aria-hidden />
                                                                                 </button>
                                                                             </li>
                                                                         ))}
                                                                     </ul>
                                                                 ) : (
-                                                                    <p className="text-[11px] text-gray-400 italic">Aucun fichier joint</p>
+                                                                    <p className="text-[11px] text-slate-400 italic">Aucun fichier joint</p>
                                                                 )}
                                                             </div>
 
                                                             <div>
                                                                 <div className="flex items-center justify-between mb-2">
-                                                                    <label className="text-xs font-semibold text-gray-600">Liens complémentaires</label>
+                                                                    <label className="text-xs font-semibold text-slate-600">Liens complémentaires</label>
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleAddLessonLink(mIndex, lIndex)}
                                                                         className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
                                                                     >
-                                                                        <i className="fas fa-plus mr-1"></i>Ajouter un lien
+                                                                        <Plus className="mr-1 inline h-3.5 w-3.5" aria-hidden />
+                                                                        Ajouter un lien
                                                                     </button>
                                                                 </div>
                                                                 {(lesson.externalLinks || []).length === 0 && (
-                                                                    <p className="text-[11px] text-gray-400 italic">Aucun lien ajouté</p>
+                                                                    <p className="text-[11px] text-slate-400 italic">Aucun lien ajouté</p>
                                                                 )}
                                                                 <div className="space-y-2">
                                                                     {(lesson.externalLinks || []).map((link, linkIdx) => (
@@ -1310,20 +1333,20 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                                                 value={link.label}
                                                                                 onChange={(e) => handleLessonLinkChange(mIndex, lIndex, linkIdx, 'label', e.target.value)}
                                                                                 placeholder="Nom du lien"
-                                                                                className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                                                                                className="md:col-span-2 px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
                                                                             />
                                                                             <input
                                                                                 value={link.url}
                                                                                 onChange={(e) => handleLessonLinkChange(mIndex, lIndex, linkIdx, 'url', e.target.value)}
                                                                                 placeholder="https://..."
-                                                                                className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                                                                                className="md:col-span-2 px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
                                                                             />
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => handleRemoveLessonLink(mIndex, lIndex, linkIdx)}
                                                                                 className="text-red-500 hover:text-red-700 px-2 py-1 rounded"
                                                                             >
-                                                                                <i className="fas fa-times"></i>
+                                                                                <X className="h-4 w-4" aria-hidden />
                                                                             </button>
                                                                         </div>
                                                                     ))}
@@ -1336,7 +1359,7 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                             className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-colors"
                                                         title="Supprimer cette leçon"
                                                     >
-                                                            <i className="fas fa-trash"></i>
+                                                            <Trash2 className="h-4 w-4" aria-hidden />
                                                     </button>
                                                     </div>
                                                 </div>
@@ -1346,35 +1369,35 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                                 onClick={() => addLesson(mIndex)} 
                                                 className="text-sm text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 p-2 rounded-lg transition-colors font-semibold"
                                             >
-                                                <i className="fas fa-plus mr-1"></i> 
+                                                <Plus className="mr-1 inline h-4 w-4" aria-hidden /> 
                                                 Ajouter une leçon
                                             </button>
                                         </div>
 
                                         {/* Evidence Documents */}
-                                        <div className="mt-4 pt-4 border-t border-gray-200">
-                                            <h4 className="text-xs font-semibold text-gray-600 uppercase mb-2 flex items-center">
-                                                <i className="fas fa-file-alt mr-2"></i>
+                                        <div className="mt-4 pt-4 border-t border-slate-200">
+                                            <h4 className="text-xs font-semibold text-slate-600 uppercase mb-2 flex items-center">
+                                                <FileText className="mr-2 inline h-4 w-4" aria-hidden />
                                                 Documents de preuve
                                             </h4>
                                             {module.evidenceDocuments && module.evidenceDocuments.length > 0 && (
                                                 <div className="space-y-2 mb-2">
                                                     {module.evidenceDocuments.map((doc, dIndex) => (
-                                                        <div key={dIndex} className="flex items-center justify-between bg-gray-50 p-2 rounded-md text-sm">
+                                                        <div key={dIndex} className="flex items-center justify-between bg-slate-50 p-2 rounded-md text-sm">
                                                             <span className="truncate flex-1">{doc.fileName}</span>
                                                             <button 
                                                                 type="button" 
                                                                 onClick={() => removeEvidenceDocument(mIndex, dIndex)} 
                                                                 className="text-red-500 hover:text-red-700"
                                                             >
-                                                                <i className="fas fa-times"></i>
+                                                                <X className="h-4 w-4" aria-hidden />
                                                             </button>
                                                         </div>
                                                     ))}
                                                 </div>
                                             )}
                                             <label className="text-sm text-emerald-600 hover:text-emerald-800 cursor-pointer inline-flex items-center gap-2 px-3 py-2 border border-emerald-300 rounded-md hover:bg-emerald-50 transition-colors">
-                                                <i className="fas fa-upload"></i>
+                                                <Upload className="h-4 w-4" aria-hidden />
                                                 Uploader un document
                                                 <input type="file" className="hidden" onChange={(e) => handleEvidenceUpload(e, mIndex)} />
                                             </label>
@@ -1388,27 +1411,19 @@ const CourseCreatePage: React.FC<CourseCreatePageProps> = ({
                                 onClick={addModule} 
                                 className="w-full border-dashed border-2 border-emerald-400 p-4 rounded-lg hover:bg-emerald-50 hover:border-emerald-600 transition-all mt-4"
                             >
-                                <i className="fas fa-plus-circle mr-2 text-emerald-600"></i>
+                                <Plus className="mr-2 inline h-5 w-5 text-emerald-600" aria-hidden />
                                 <span className="font-semibold text-emerald-600">Ajouter un module</span>
                             </button>
                         </div>
 
                         {/* Boutons d'action */}
-                        <div className="flex justify-end gap-4 pt-6 border-t">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-                            >
+                        <div className="flex justify-end gap-3 border-t border-slate-100 pt-6">
+                            <Button type="button" variant="secondary" size="md" onClick={onClose}>
                                 Annuler
-                            </button>
-                            <button
-                                type="submit"
-                                className="bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
-                            >
-                                <i className="fas fa-save mr-2"></i>
+                            </Button>
+                            <Button type="submit" variant="primary" size="md" leftIcon={<Save className="h-4 w-4" aria-hidden />}>
                                 {isEditMode ? 'Sauvegarder' : 'Créer le cours'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </form>

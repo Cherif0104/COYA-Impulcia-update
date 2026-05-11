@@ -1,11 +1,27 @@
 import React, { useState, useMemo } from 'react';
+import {
+  BookMarked,
+  BookOpen,
+  CheckCircle2,
+  Database,
+  Pencil,
+  Plus,
+  Search,
+  ToggleLeft,
+  ToggleRight,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import { useLocalization } from '../contexts/LocalizationContext';
-import { useAuth } from '../contexts/AuthContextSupabase';
 import { useModulePermissions } from '../hooks/useModulePermissions';
 import { Course, User } from '../types';
 import ConfirmationModal from './common/ConfirmationModal';
 import CourseCreatePage from './CourseCreatePage';
 import AccessDenied from './common/AccessDenied';
+import { Button } from './ui/Button';
+
+const shellCard =
+  'rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)]';
 
 interface CourseManagementProps {
     courses: Course[];
@@ -31,7 +47,6 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
     onOpenCrmCollecteForCourse,
 }) => {
     const { t } = useLocalization();
-    const { user } = useAuth();
     const { canAccessModule, hasPermission } = useModulePermissions();
     const [showCourseForm, setShowCourseForm] = useState(false);
     const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -136,103 +151,112 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
                 <p className="text-2xl font-bold text-slate-900">{draftCourses}</p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="text-xs uppercase text-slate-500">Étudiants</p>
+                <p className="text-xs uppercase text-slate-500">Apprenants</p>
                 <p className="text-2xl font-bold text-slate-900">{totalStudents}</p>
             </div>
         </div>
     ) : (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-600">Total Cours</span>
-                        <i className="fas fa-book text-2xl text-blue-500"></i>
+        <div className="mx-auto -mt-6 mb-8 max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className={`${shellCard} p-5`}>
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total cours</span>
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                            <BookOpen className="h-5 w-5" aria-hidden />
+                        </span>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900">{totalCourses}</p>
+                    <p className="mt-2 text-3xl font-bold text-slate-900">{totalCourses}</p>
                 </div>
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-600">Publiés</span>
-                        <i className="fas fa-check-circle text-2xl text-green-500"></i>
+                <div className={`${shellCard} p-5`}>
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Publiés</span>
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                            <CheckCircle2 className="h-5 w-5" aria-hidden />
+                        </span>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900">{publishedCourses}</p>
+                    <p className="mt-2 text-3xl font-bold text-slate-900">{publishedCourses}</p>
                 </div>
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-600">Brouillons</span>
-                        <i className="fas fa-edit text-2xl text-yellow-500"></i>
+                <div className={`${shellCard} p-5`}>
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Brouillons</span>
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                            <Pencil className="h-5 w-5" aria-hidden />
+                        </span>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900">{draftCourses}</p>
+                    <p className="mt-2 text-3xl font-bold text-slate-900">{draftCourses}</p>
                 </div>
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-600">Total Étudiants</span>
-                        <i className="fas fa-users text-2xl text-purple-500"></i>
+                <div className={`${shellCard} p-5`}>
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Apprenants (cumul)</span>
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                            <Users className="h-5 w-5" aria-hidden />
+                        </span>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900">{totalStudents}</p>
+                    <p className="mt-2 text-3xl font-bold text-slate-900">{totalStudents}</p>
                 </div>
             </div>
         </div>
     );
 
     return (
-        <div className={embedded ? 'space-y-4' : 'min-h-screen bg-gray-50'}>
+        <div className={embedded ? 'space-y-4' : 'min-h-screen bg-slate-50'}>
             {embedded ? (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-slate-600">
                         Créez, modifiez et gérez le catalogue de formations pour votre organisation.
                     </p>
-                    <button
+                    <Button
                         type="button"
+                        variant="primary"
+                        size="md"
+                        leftIcon={<Plus className="h-4 w-4" aria-hidden />}
                         onClick={() => handleOpenForm(null)}
                         disabled={!canWriteModule}
-                        className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        className="whitespace-nowrap"
                     >
-                        <i className="fas fa-plus mr-2" />
                         Nouveau cours
-                    </button>
+                    </Button>
                 </div>
             ) : (
-                <>
-                    <div className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white shadow-lg">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                            <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                    <h1 className="text-4xl font-bold mb-2">{t('course_management') || 'Course Management'}</h1>
-                                    <p className="text-emerald-50 text-sm">Créez, modifiez et gérez vos formations</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => handleOpenForm(null)}
-                                    disabled={!canWriteModule}
-                                    className={`bg-white text-emerald-600 font-bold py-2 px-4 rounded-lg flex items-center shadow-md transition-all ${
-                                        canWriteModule ? 'hover:bg-emerald-50' : 'opacity-50 cursor-not-allowed'
-                                    }`}
-                                >
-                                    <i className="fas fa-plus mr-2"></i>
-                                    Nouveau Cours
-                                </button>
-                            </div>
+                <div className="border-b border-slate-200 bg-white">
+                    <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:px-6 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+                        <div className="min-w-0">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Studio</p>
+                            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                                {t('course_management') || 'Gestion des formations'}
+                            </h1>
+                            <p className="mt-1 text-sm text-slate-600">Créez, modifiez et publiez le catalogue pour votre organisation.</p>
                         </div>
+                        <Button
+                            type="button"
+                            variant="primary"
+                            size="md"
+                            leftIcon={<Plus className="h-4 w-4" aria-hidden />}
+                            onClick={() => handleOpenForm(null)}
+                            disabled={!canWriteModule}
+                            className="shrink-0"
+                        >
+                            Nouveau cours
+                        </Button>
                     </div>
-                </>
+                </div>
             )}
 
             {metricsGrid}
 
             {/* Barre de recherche et filtres */}
-            <div className={embedded ? 'pb-0' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8'}>
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div className={embedded ? 'pb-0' : 'mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8'}>
+                <div className={`${shellCard} mb-6 p-4`}>
                     <div className="flex flex-wrap items-center gap-4">
-                        <div className="flex-1 min-w-[200px]">
+                        <div className="min-w-[200px] flex-1">
                             <div className="relative">
-                                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
                                 <input
                                     type="text"
-                                    placeholder="Rechercher un cours..."
+                                    placeholder="Rechercher un cours…"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                    className="w-full rounded-xl border border-slate-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                 />
                             </div>
                         </div>
@@ -241,7 +265,7 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
                             <select
                                 value={categoryFilter}
                                 onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             >
                                 <option value="all">Toutes les catégories</option>
                                 <option value="no_category">Sans catégorie</option>
@@ -254,148 +278,161 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            className="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         >
                             <option value="all">Tous les statuts</option>
                             <option value="published">Publié</option>
                             <option value="draft">Brouillon</option>
                             <option value="archived">Archivé</option>
                         </select>
-                            </div>
+                    </div>
 
-                    <div className="mt-3 pt-3 border-t border-gray-200 text-sm text-gray-600">
+                    <div className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">
                         {filteredCourses.length} {filteredCourses.length > 1 ? 'cours trouvés' : 'cours trouvé'}
                         {searchQuery && (
-                            <span className="ml-2 text-emerald-600">
-                                pour "{searchQuery}"
-                            </span>
+                            <span className="ml-2 font-medium text-blue-600">pour « {searchQuery} »</span>
                         )}
-                            </div>
-                        </div>
+                    </div>
+                </div>
 
                 {filteredCourses.length === 0 ? (
-                    <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-                        <i className="fas fa-book-reader text-6xl text-gray-300 mb-4"></i>
-                        <p className="text-gray-600 text-lg mb-2">
+                    <div className={`${shellCard} p-12 text-center`}>
+                        <BookMarked className="mx-auto mb-4 h-14 w-14 text-slate-300" aria-hidden />
+                        <p className="mb-2 text-lg text-slate-600">
                             {searchQuery || categoryFilter !== 'all' || statusFilter !== 'all' ? 
                                 'Aucun cours ne correspond aux critères' : 
                                 'Aucun cours'}
                         </p>
-                        <button
+                        <Button
+                            type="button"
+                            variant="primary"
+                            size="md"
+                            className="mt-4"
+                            leftIcon={<Plus className="h-4 w-4" aria-hidden />}
                             onClick={() => handleOpenForm(null)}
-                            className="mt-4 bg-emerald-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+                            disabled={!canWriteModule}
                         >
-                            <i className="fas fa-plus mr-2"></i>
                             Créer le premier cours
-                            </button>
+                        </Button>
                     </div>
                 ) : (
                     <div className="space-y-4">
                         {filteredCourses.map(course => (
-                            <div key={course.id} className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all border border-gray-200">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-start gap-4 flex-1">
+                            <div key={course.id} className={`${shellCard} p-6 transition-shadow hover:shadow-[0_12px_40px_rgba(15,23,42,0.08)]`}>
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                    <div className="flex min-w-0 flex-1 items-start gap-4">
                                         {course.thumbnailUrl ? (
-                                            <div className="w-24 h-24 bg-cover bg-center rounded-lg flex-shrink-0" style={{ backgroundImage: `url(${course.thumbnailUrl})` }}></div>
+                                            <div
+                                                className="h-24 w-24 shrink-0 rounded-xl bg-cover bg-center"
+                                                style={{ backgroundImage: `url(${course.thumbnailUrl})` }}
+                                                role="img"
+                                                aria-hidden
+                                            />
                                         ) : (
-                                            <div className="bg-emerald-100 text-emerald-600 rounded-lg p-4 flex-shrink-0">
-                                                <i className={`${course.icon || 'fas fa-book'} fa-2x`}></i>
+                                            <div className="flex shrink-0 items-center justify-center rounded-xl bg-slate-100 p-4 text-slate-600">
+                                                <BookOpen className="h-8 w-8" aria-hidden />
                                             </div>
                                         )}
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="text-lg font-bold text-gray-900">{course.title}</h3>
-                                            <p className="text-sm text-gray-500 mt-1">{course.instructor}</p>
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="text-lg font-bold text-slate-900">{course.title}</h3>
+                                            <p className="mt-1 text-sm text-slate-500">{course.instructor}</p>
                                             {course.description && (
-                                                <p className="text-sm text-gray-600 mt-2 line-clamp-2">{course.description}</p>
+                                                <p className="mt-2 line-clamp-2 text-sm text-slate-600">{course.description}</p>
                                             )}
-                                            <div className="flex items-center gap-4 flex-wrap mt-3">
+                                            <div className="mt-3 flex flex-wrap items-center gap-2">
                                                 {course.category && (
-                                                    <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                    <span className="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
                                                         {course.category}
                                                     </span>
                                                 )}
                                                 {course.level && (
-                                                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${
-                                                        course.level === 'beginner' ? 'bg-blue-100 text-blue-800' :
-                                                        course.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                                                        'bg-green-100 text-green-800'
+                                                    <span className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${
+                                                        course.level === 'beginner' ? 'bg-sky-100 text-sky-800' :
+                                                        course.level === 'intermediate' ? 'bg-amber-100 text-amber-900' :
+                                                        'bg-emerald-100 text-emerald-800'
                                                     }`}>
                                                         {course.level === 'beginner' ? 'Débutant' : course.level === 'intermediate' ? 'Intermédiaire' : 'Avancé'}
                                                     </span>
                                                 )}
                                                 {course.status && (
-                                                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                                                        course.status === 'published' ? 'bg-green-100 text-green-800' :
-                                                        course.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                                                    <span className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${
+                                                        course.status === 'published' ? 'bg-emerald-100 text-emerald-800' :
+                                                        course.status === 'draft' ? 'bg-slate-100 text-slate-700' :
                                                         'bg-red-100 text-red-800'
                                                     }`}>
                                                         {course.status === 'published' ? 'Publié' : course.status === 'draft' ? 'Brouillon' : 'Archivé'}
                                                     </span>
                                                 )}
-                            </div>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                                        {/* Toggle Actif/Inactif */}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-1 sm:ml-2">
                                         <button
+                                            type="button"
                                             onClick={async () => {
-                                                // Déterminer le nouveau statut : toggle entre published et draft
                                                 const newStatus = course.status === 'published' ? 'draft' : 'published';
-                                                console.log('🔄 Changement de statut:', course.title, 'de', course.status, 'vers', newStatus);
-                                                
-                                                // Mettre à jour immédiatement le statut
                                                 try {
-                                                    await onUpdateCourse({ ...course, status: newStatus as any });
-                                                    console.log('✅ Statut mis à jour avec succès');
-                                                } catch (error: any) {
-                                                    console.error('❌ Erreur lors de la mise à jour du statut:', error);
-                                                    if (error.code === '23514') {
-                                                        alert('Erreur: Le statut "' + newStatus + '" n\'est pas autorisé. Statuts valides: published, draft, archived');
+                                                    await onUpdateCourse({
+                                                        ...course,
+                                                        status: newStatus as 'draft' | 'published' | 'archived',
+                                                    });
+                                                } catch (error: unknown) {
+                                                    const err = error as { code?: string };
+                                                    if (err?.code === '23514') {
+                                                        alert(
+                                                            `Erreur : le statut « ${newStatus} » n'est pas autorisé. Statuts valides : published, draft, archived`,
+                                                        );
                                                     } else {
                                                         alert('Erreur lors de la mise à jour du statut du cours');
                                                     }
                                                 }
                                             }}
-                                            className={`p-2 rounded-lg transition-colors ${
+                                            className={`rounded-xl p-2 transition-colors ${
                                                 course.status === 'published' 
-                                                    ? 'text-green-600 hover:bg-green-50' 
-                                                    : 'text-gray-400 hover:bg-gray-50'
+                                                    ? 'text-emerald-600 hover:bg-emerald-50' 
+                                                    : 'text-slate-400 hover:bg-slate-100'
                                             }`}
                                             title={course.status === 'published' ? 'Désactiver le cours (passer en brouillon)' : 'Activer le cours (publier)'}
                                         >
-                                            <i className={`fas ${course.status === 'published' ? 'fa-toggle-on' : 'fa-toggle-off'} text-xl`}></i>
+                                            {course.status === 'published' ? (
+                                                <ToggleRight className="h-6 w-6" aria-hidden />
+                                            ) : (
+                                                <ToggleLeft className="h-6 w-6" aria-hidden />
+                                            )}
                                         </button>
                                         <button 
+                                            type="button"
                                             onClick={() => handleOpenForm(course)} 
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            className="rounded-xl p-2 text-blue-600 transition-colors hover:bg-blue-50"
                                             title="Modifier"
                                         >
-                                            <i className="fas fa-edit"></i>
-                            </button>
-                            {onOpenCrmCollecteForCourse && (
-                                <button
-                                    type="button"
-                                    onClick={() => onOpenCrmCollecteForCourse(course.id)}
-                                    className="p-2 text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
-                                    title="Collecte / CRM — rattacher une campagne à ce cours"
-                                >
-                                    <i className="fas fa-database" />
-                                </button>
-                            )}
-                    {canDeleteModule && (
-                        <button
-                            onClick={() => setDeletingCourseId(course.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Supprimer"
-                        >
-                            <i className="fas fa-trash"></i>
-                        </button>
-                    )}
+                                            <Pencil className="h-5 w-5" aria-hidden />
+                                        </button>
+                                        {onOpenCrmCollecteForCourse && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onOpenCrmCollecteForCourse(course.id)}
+                                                className="rounded-xl p-2 text-emerald-700 transition-colors hover:bg-emerald-50"
+                                                title="Collecte / CRM — rattacher une campagne à ce cours"
+                                            >
+                                                <Database className="h-5 w-5" aria-hidden />
+                                            </button>
+                                        )}
+                                        {canDeleteModule && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setDeletingCourseId(course.id)}
+                                                className="rounded-xl p-2 text-red-600 transition-colors hover:bg-red-50"
+                                                title="Supprimer"
+                                            >
+                                                <Trash2 className="h-5 w-5" aria-hidden />
+                                            </button>
+                                        )}
                                     </div>
-                        </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
                 )}
             </div>
 
