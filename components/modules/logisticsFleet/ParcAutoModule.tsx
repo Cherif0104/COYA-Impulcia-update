@@ -26,6 +26,7 @@ import { useAuth } from '../../../contexts/AuthContextSupabase';
 import * as programmeService from '../../../services/programmeService';
 import type { Programme } from '../../../types';
 import { NAV_SESSION_MOBILITE_INTENT } from '../../../contexts/AppNavigationContext';
+import ModuleRichHub from '../../common/ModuleRichHub';
 
 function randomIdPart(): string {
   return typeof globalThis.crypto !== 'undefined' && 'randomUUID' in globalThis.crypto

@@ -6,6 +6,7 @@ import type { Equipment, EquipmentCategory, EquipmentRequest, SensitiveDisposalS
 import OrganizationService from '../services/organizationService';
 import { useAuth } from '../contexts/AuthContextSupabase';
 import { NAV_SESSION_MOBILITE_INTENT } from '../contexts/AppNavigationContext';
+import ModuleRichHub from './common/ModuleRichHub';
 
 /** Phase 4.2 – Logistique : équipements, demandes, workflow validation → mise à disposition */
 const LogistiqueModule: React.FC = () => {
