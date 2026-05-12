@@ -828,7 +828,6 @@ const Drive: React.FC = () => {
       <div className="px-4 pt-4 pb-2 max-w-[1920px] mx-auto w-full">
         <ModuleRichHub
           isFr={isFr}
-          excludeViews={['coya_drive', 'knowledge_base']}
           metrics={[
             {
               labelFr: 'Workspaces',

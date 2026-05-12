@@ -79,6 +79,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { icon: 'fas fa-briefcase',        labelKey: 'jobs',            labelFallback: 'Offres d\u2019emploi', view: 'jobs',               color: 'text-orange-300' },
   { icon: 'fas fa-users',            labelKey: 'crm_sales',       labelFallback: 'CRM & Ventes',        view: 'crm_sales',           color: 'text-emerald-400' },
   { icon: 'fas fa-gem',              labelKey: 'trinite',         labelFallback: 'Trinité',             view: 'trinite',             color: 'text-red-400' },
+  { icon: 'fas fa-route',            labelKey: 'demande_mobilite', labelFallback: 'Demande mobilité',   view: 'demande_mobilite',    color: 'text-emerald-400' },
   { icon: 'fas fa-boxes',            labelKey: 'logistique',      labelFallback: 'Logistique',          view: 'logistique',          color: 'text-teal-400' },
   { icon: 'fas fa-video',            labelKey: 'studio',          labelFallback: 'Studio',              view: 'studio',              color: 'text-purple-400' },
   { icon: 'fas fa-car',              labelKey: 'parc_auto',       labelFallback: 'Parc Auto',           view: 'parc_auto',           color: 'text-amber-400' },
@@ -240,9 +241,10 @@ const Sidebar: React.FC<SidebarProps> = ({
           continue;
         }
       }
-      const moduleForAccess: ModuleName =
-        item.view === 'apex' ? 'courses' : (item.view as ModuleName);
-      const allowed = canAccessModule(moduleForAccess);
+      const allowed =
+        item.view === 'demande_mobilite'
+          ? canAccessModule('parc_auto') || canAccessModule('logistique')
+          : canAccessModule(item.view === 'apex' ? 'courses' : (item.view as ModuleName));
       if (allowed) out.push(item);
     }
     return out;
@@ -261,6 +263,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (item.labelKey === 'rh') raw = 'Ressources Humaines';
     else if (item.labelKey === 'comptabilite') raw = 'Comptabilité';
     else if (item.labelKey === 'programmes_projects') raw = 'Programmes & Projets';
+    else if (item.labelKey === 'demande_mobilite') raw = t('demande_mobilite') || item.labelFallback;
     else raw = getDisplayName(item.labelKey) || t(item.labelKey) || item.labelFallback;
     return formatSidebarMenuLabel(raw, language);
   };

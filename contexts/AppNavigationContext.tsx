@@ -26,6 +26,19 @@ export const NAV_SESSION_CRM_FILTER_SOURCE_COLLECTION_ID = 'coya_nav_crm_filter_
 /** sessionStorage : filtrer les formations (vue `courses`) par programme lié. */
 export const NAV_SESSION_COURSES_PROGRAMME_ID = 'coya_nav_courses_programme_id';
 
+/** sessionStorage : intention mobilité depuis le hub `demande_mobilite` — valeurs `internal` | `external` (consommé au montage Parc auto / Logistique). */
+export const NAV_SESSION_MOBILITE_INTENT = 'coya_mobilite_intent';
+
+/** Query URL (avec `history.replaceState`) : filtrer le hub sur un projet. */
+export const NAV_QUERY_MOBILITE_PROJECT_ID = 'projectId';
+/** Query URL : filtrer le hub sur un programme. */
+export const NAV_QUERY_MOBILITE_PROGRAMME_ID = 'programmeId';
+
+/** sessionStorage (secours si pas de query) : filtre projet pour le hub mobilité. */
+export const NAV_SESSION_MOBILITE_FILTER_PROJECT_ID = 'coya_mobilite_filter_project_id';
+/** sessionStorage (secours) : filtre programme pour le hub mobilité. */
+export const NAV_SESSION_MOBILITE_FILTER_PROGRAMME_ID = 'coya_mobilite_filter_programme_id';
+
 export type AppNavigationContextValue = {
   setView: (view: string) => void;
 };

@@ -8,6 +8,7 @@ import ProgrammeModule from './components/ProgrammeModule';
 import TriniteModule from './components/TriniteModule';
 import LogistiqueModule from './components/LogistiqueModule';
 import ParcAutoModule from './components/ParcAutoModule';
+import MobiliteRequestHub from './components/MobiliteRequestHub';
 import TicketITModule from './components/TicketITModule';
 import MessagerieModule from './components/MessagerieModule';
 import StudioModule from './components/modules/studio/StudioModule';
@@ -19,6 +20,7 @@ const MODULE_VIEWS: Record<string, React.ComponentType<{}>> = {
   logistique: LogistiqueModule,
   studio: StudioModule,
   parc_auto: ParcAutoModule,
+  demande_mobilite: MobiliteRequestHub,
   ticket_it: TicketITModule,
   messagerie: MessagerieModule,
 };
@@ -49,6 +51,7 @@ export const MODULE_LABELS: Record<string, { fr: string; en: string }> = {
   logistique: { fr: 'Logistique', en: 'Logistics' },
   studio: { fr: 'Studio', en: 'Studio' },
   parc_auto: { fr: 'Parc Auto', en: 'Fleet management' },
+  demande_mobilite: { fr: 'Demande mobilité', en: 'Mobility request' },
   ticket_it: { fr: 'Ticket IT', en: 'IT Ticket' },
   messagerie: { fr: 'Messagerie', en: 'Messaging' },
   /** Coquille LMS APEX (routée dans App.tsx avec données cours). */

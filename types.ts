@@ -1898,6 +1898,28 @@ export interface Meeting {
     meetingPlatform?: string; // 'google_meet', 'microsoft_teams', 'zoom', 'other'
 }
 
+/** Hub « Demande mobilité » — entité minimale (brouillon → soumis). */
+export type MobilityRequestStatus = 'draft' | 'submitted';
+export type MobilityIntentRoute = 'internal' | 'external';
+export type MobilityTripType = 'mission' | 'course' | 'autre';
+
+export interface MobilityRequest {
+    id: string;
+    organizationId: string;
+    createdByProfileId: string;
+    status: MobilityRequestStatus;
+    intentRoute: MobilityIntentRoute | null;
+    passengerCount: number;
+    tripType: MobilityTripType;
+    projectId: string | null;
+    programmeId: string | null;
+    participantProfileIds: string[];
+    title: string;
+    notes: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export enum Language {
     EN = 'en',
     FR = 'fr',

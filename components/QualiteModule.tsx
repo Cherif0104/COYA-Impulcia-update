@@ -67,7 +67,6 @@ const QualiteModule: React.FC = () => {
     >
       <ModuleRichHub
         isFr={isFr}
-        excludeViews={['qualite']}
         metrics={[
           {
             labelFr: 'Indicateurs cibles',

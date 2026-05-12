@@ -70,8 +70,14 @@ const Header: React.FC<HeaderProps> = ({
     day: 'numeric',
   });
 
+  const mobilityHubTitle =
+    language === Language.FR ? 'Demande mobilité' : 'Mobility request';
+
   const pageLabel =
-    (currentView && (getDisplayName(currentView) || VIEW_LABELS[currentView])) ||
+    (currentView &&
+      (getDisplayName(currentView) ||
+        (currentView === 'demande_mobilite' ? mobilityHubTitle : undefined) ||
+        VIEW_LABELS[currentView])) ||
     VIEW_LABELS[currentView || ''] ||
     'COYA';
 

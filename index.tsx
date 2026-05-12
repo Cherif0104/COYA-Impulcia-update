@@ -15,6 +15,7 @@ import {
   SupabaseTimelineSegmentPersistence,
 } from './services/workforce';
 import { isSupabaseConfigured } from './services/supabaseService';
+import { postCoyaDebugIngest } from './utils/coyaDebugIngest';
 
 /** Workforce OS : événements + segments timeline (Supabase) ; mémoire en dev si non configuré */
 if (isSupabaseConfigured) {
@@ -44,23 +45,19 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, { 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('Erreur rendu:', error, info.componentStack);
     // #region agent log
-    fetch('/__debug/ingest', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-      body: JSON.stringify({
-        sessionId: '5fe008',
-        hypothesisId: 'H_ERR',
-        location: 'index.tsx:AppErrorBoundary.componentDidCatch',
-        message: 'react_render_error',
-        data: {
-          name: error?.name,
-          msg: String(error?.message || '').slice(0, 400),
-          stackTop: String(error?.stack || '').split('\n').slice(0, 6).join(' | '),
-          compStack: String(info?.componentStack || '').slice(0, 800),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
+    postCoyaDebugIngest({
+      sessionId: '5fe008',
+      hypothesisId: 'H_ERR',
+      location: 'index.tsx:AppErrorBoundary.componentDidCatch',
+      message: 'react_render_error',
+      data: {
+        name: error?.name,
+        msg: String(error?.message || '').slice(0, 400),
+        stackTop: String(error?.stack || '').split('\n').slice(0, 6).join(' | '),
+        compStack: String(info?.componentStack || '').slice(0, 800),
+      },
+      timestamp: Date.now(),
+    });
     // #endregion
   }
 

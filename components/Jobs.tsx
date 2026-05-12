@@ -451,8 +451,6 @@ const Jobs: React.FC<JobsProps> = ({ jobs, setJobs, setView }) => {
 
       <ModuleRichHub
         isFr={isFr}
-        setView={setView}
-        excludeViews={['jobs', 'create_job', 'job_management']}
         sections={[
           {
             key: 'flow',

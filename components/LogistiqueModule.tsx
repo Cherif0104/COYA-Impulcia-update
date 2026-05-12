@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocalization } from '../contexts/LocalizationContext';
 import { useModulePermissions } from '../hooks/useModulePermissions';
 import * as logistiqueService from '../services/logistiqueService';
 import type { Equipment, EquipmentCategory, EquipmentRequest, SensitiveDisposalStatus } from '../services/logistiqueService';
 import OrganizationService from '../services/organizationService';
 import { useAuth } from '../contexts/AuthContextSupabase';
-import ModuleRichHub from './common/ModuleRichHub';
+import { NAV_SESSION_MOBILITE_INTENT } from '../contexts/AppNavigationContext';
 
 /** Phase 4.2 – Logistique : équipements, demandes, workflow validation → mise à disposition */
 const LogistiqueModule: React.FC = () => {
-  const { language } = useLocalization();
+  const { language, t } = useLocalization();
   const { user } = useAuth();
   const { hasPermission } = useModulePermissions();
   const isFr = language === 'fr';
@@ -20,6 +20,8 @@ const LogistiqueModule: React.FC = () => {
   const [showEquipForm, setShowEquipForm] = useState(false);
   const [editEquipment, setEditEquipment] = useState<Equipment | null>(null);
   const [showRequestForm, setShowRequestForm] = useState(false);
+  const mobiliteIntentConsumedRef = useRef(false);
+  const [mobiliteHubBanner, setMobiliteHubBanner] = useState(false);
   const [formEquip, setFormEquip] = useState({
     name: '',
     brand: '',
@@ -60,6 +62,28 @@ const LogistiqueModule: React.FC = () => {
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    if (mobiliteIntentConsumedRef.current) return;
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(NAV_SESSION_MOBILITE_INTENT);
+    } catch {
+      return;
+    }
+    if (raw !== 'external') return;
+    mobiliteIntentConsumedRef.current = true;
+    try {
+      sessionStorage.removeItem(NAV_SESSION_MOBILITE_INTENT);
+    } catch {
+      /* ignore */
+    }
+    setShowRequestForm(true);
+    setMobiliteHubBanner(true);
+    requestAnimationFrame(() => {
+      document.getElementById('logistique-equipment-requests')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }, []);
 
   const emptyEquipForm = () => ({
@@ -203,6 +227,14 @@ const LogistiqueModule: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6 text-gray-900">
+      {mobiliteHubBanner ? (
+        <div
+          role="status"
+          className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-950 shadow-sm"
+        >
+          {t('mobility_suite_banner_logistique')}
+        </div>
+      ) : null}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -219,7 +251,6 @@ const LogistiqueModule: React.FC = () => {
 
       <ModuleRichHub
         isFr={isFr}
-        excludeViews={['logistique']}
         metrics={[
           {
             labelFr: 'Équipements',
@@ -449,7 +480,7 @@ const LogistiqueModule: React.FC = () => {
         </div>
       </section>
 
-      <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <section id="logistique-equipment-requests" className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
             <i className="fas fa-truck-loading text-emerald-600" />

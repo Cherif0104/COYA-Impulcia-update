@@ -251,7 +251,6 @@ export const ApexOverviewSection: React.FC<ApexOverviewSectionProps> = ({
 
       <ModuleRichHub
         isFr={isFr}
-        excludeViews={['apex', 'formation', 'courses']}
         metrics={[
           {
             labelFr: 'Cours (catalogue)',

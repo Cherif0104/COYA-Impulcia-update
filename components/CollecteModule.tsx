@@ -625,8 +625,6 @@ const CollecteModule: React.FC<{ embeddedInCrm?: boolean; onAfterCrmBulkSync?: (
         <div className="mb-6">
           <ModuleRichHub
             isFr={isFr}
-            excludeViews={['collecte']}
-            setView={nav?.setView}
             metrics={[
               {
                 labelFr: 'Campagnes',

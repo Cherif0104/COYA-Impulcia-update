@@ -705,11 +705,8 @@ const Settings: React.FC<SettingsProps> = ({
         </p>
       </header>
 
-      {setView ? (
-        <ModuleRichHub
+      <ModuleRichHub
           isFr={isFr}
-          setView={setView}
-          excludeViews={['settings']}
           metrics={[
             {
               labelFr: 'Automatisations (scan)',
@@ -759,7 +756,6 @@ const Settings: React.FC<SettingsProps> = ({
             },
           ]}
         />
-      ) : null}
 
       {showAdminTab ? (
         <div className="flex p-1 mb-8 bg-slate-100 rounded-xl border border-slate-200 max-w-md">

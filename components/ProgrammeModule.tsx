@@ -10,6 +10,7 @@ import {
   NAV_SESSION_PROGRAMMES_PROJECTS_TAB,
   NAV_SESSION_COLLECTE_PRESET_PROGRAMME_ID,
   NAV_SESSION_COURSES_PROGRAMME_ID,
+  NAV_QUERY_MOBILITE_PROGRAMME_ID,
 } from '../contexts/AppNavigationContext';
 import { useModulePermissions } from '../hooks/useModulePermissions';
 import { projectsHomeView } from '../utils/programmesProjectsNav';
@@ -117,7 +118,7 @@ function programmeActionStatusLabel(isFr: boolean, s: ProgrammeAction['status'])
 
 /** Phase 3 – Programme & Bailleur : hiérarchie terrain (projet → activité → tâche), budget cascade, CRM participants */
 const ProgrammeModule: React.FC = () => {
-  const { language } = useLocalization();
+  const { language, t } = useLocalization();
   const { user: currentUser } = useAuth();
   const nav = useAppNavigation();
   const { canAccessModule } = useModulePermissions();
@@ -1517,6 +1518,27 @@ const ProgrammeModule: React.FC = () => {
                         ))}
                       </div>
                     </nav>
+                    {selectedProgramme && nav?.setView ? (
+                      <div className="mt-3 flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-2 rounded-xl border border-[var(--coya-institutional)] bg-white px-3 py-2 text-xs font-semibold text-[var(--coya-institutional)] shadow-sm hover:bg-emerald-50"
+                          onClick={() => {
+                            try {
+                              const u = new URL(window.location.href);
+                              u.searchParams.set(NAV_QUERY_MOBILITE_PROGRAMME_ID, selectedProgramme.id);
+                              window.history.replaceState({}, '', u.toString());
+                            } catch {
+                              /* ignore */
+                            }
+                            nav.setView('demande_mobilite');
+                          }}
+                        >
+                          <i className="fas fa-route" aria-hidden />
+                          {t('mobility_link_programme_detail')}
+                        </button>
+                      </div>
+                    ) : null}
                     <div className="mt-4 space-y-4 rounded-xl bg-slate-50 p-4 lg:p-6">
               {showBudgetPack && selectedProgramme && organizationId && (
                 <div className="space-y-3 text-sm">

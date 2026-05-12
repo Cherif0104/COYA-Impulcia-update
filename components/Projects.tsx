@@ -25,6 +25,7 @@ import * as programmeService from '../services/programmeService';
 import * as referentialsService from '../services/referentialsService';
 import { useModulePermissions } from '../hooks/useModulePermissions';
 import { NAV_SESSION_OPEN_PROJECT_ID } from '../contexts/AppNavigationContext';
+import { postCoyaDebugIngest } from '../utils/coyaDebugIngest';
 import { getProjectCockpitSnapshot } from '../services/projectCockpitService';
 import { WorkspaceShell, WorkspaceHeader } from '../ui-runtime';
 import { EnterpriseProjectsTable } from './program-projects/enterprise/EnterpriseProjectsTable';
@@ -288,68 +289,52 @@ const Projects: React.FC<ProjectsProps> = ({
 
     useEffect(() => {
         // #region agent log
-        fetch('/__debug/ingest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-            body: JSON.stringify({
+        postCoyaDebugIngest({
                 sessionId: '5fe008',
                 hypothesisId: 'H2',
                 location: 'Projects.tsx:mount',
                 message: 'Projects_mounted',
                 data: {},
                 timestamp: Date.now(),
-            }),
-        }).catch(() => {});
+            });
         // #endregion
         return () => {
             // #region agent log
-            fetch('/__debug/ingest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-                body: JSON.stringify({
+            postCoyaDebugIngest({
                     sessionId: '5fe008',
                     hypothesisId: 'H2',
                     location: 'Projects.tsx:unmount',
                     message: 'Projects_unmounted',
                     data: {},
                     timestamp: Date.now(),
-                }),
-            }).catch(() => {});
+                });
             // #endregion
         };
     }, []);
 
     useEffect(() => {
         // #region agent log
-        fetch('/__debug/ingest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-            body: JSON.stringify({
+        postCoyaDebugIngest({
                 sessionId: '5fe008',
                 hypothesisId: 'H1',
                 location: 'Projects.tsx:isProjectCreatePageOpen',
                 message: 'wizard_visibility',
                 data: { open: isProjectCreatePageOpen },
                 timestamp: Date.now(),
-            }),
-        }).catch(() => {});
+            });
         // #endregion
     }, [isProjectCreatePageOpen]);
 
     useEffect(() => {
         // #region agent log
-        fetch('/__debug/ingest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-            body: JSON.stringify({
+        postCoyaDebugIngest({
                 sessionId: '5fe008',
                 hypothesisId: 'H6',
                 location: 'Projects.tsx:activeSection',
                 message: 'section_changed',
                 data: { activeSection },
                 timestamp: Date.now(),
-            }),
-        }).catch(() => {});
+            });
         // #endregion
     }, [activeSection]);
 
@@ -422,18 +407,14 @@ const Projects: React.FC<ProjectsProps> = ({
 
     const handleSaveProject = async (projectData: Project | Omit<Project, 'id' | 'tasks' | 'risks'>) => {
         // #region agent log
-        fetch('/__debug/ingest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-            body: JSON.stringify({
+        postCoyaDebugIngest({
                 sessionId: '5fe008',
                 hypothesisId: 'H1',
                 location: 'Projects.tsx:handleSaveProject',
                 message: 'save_start',
                 data: { hasId: 'id' in projectData },
                 timestamp: Date.now(),
-            }),
-        }).catch(() => {});
+            });
         // #endregion
         const validationError = validateProject(projectData);
         if (validationError) {
@@ -475,18 +456,14 @@ const Projects: React.FC<ProjectsProps> = ({
             await onAddProject(projectToCreate);
         }
         // #region agent log
-        fetch('/__debug/ingest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-            body: JSON.stringify({
+        postCoyaDebugIngest({
                 sessionId: '5fe008',
                 hypothesisId: 'H1',
                 location: 'Projects.tsx:handleSaveProject',
                 message: 'persist_complete_wizard_closes_in_child',
                 data: {},
                 timestamp: Date.now(),
-            }),
-        }).catch(() => {});
+            });
         // #endregion
         // Fermeture : uniquement depuis ProjectCreatePage après remise de isLoading (évite removeChild sur le submit).
     };
@@ -505,18 +482,14 @@ const Projects: React.FC<ProjectsProps> = ({
 
     const handleOpenForm = (project: Project | null = null) => {
         // #region agent log
-        fetch('/__debug/ingest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-            body: JSON.stringify({
+        postCoyaDebugIngest({
                 sessionId: '5fe008',
                 hypothesisId: 'H3',
                 location: 'Projects.tsx:handleOpenForm',
                 message: 'open_wizard',
                 data: { editMode: !!project },
                 timestamp: Date.now(),
-            }),
-        }).catch(() => {});
+            });
         // #endregion
         if (project && !canManageProject(project)) {
             alert(t('project_permission_error'));

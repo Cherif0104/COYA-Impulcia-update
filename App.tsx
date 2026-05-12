@@ -14,6 +14,7 @@ import NotificationHelper from './services/notificationHelper';
 import AuditLogService from './services/auditLogService';
 import { emitTimeLogImputationEvent } from './services/workforce/timeLogActivityBridge';
 import { Notification } from './services/notificationService';
+import { postCoyaDebugIngest } from './utils/coyaDebugIngest';
 
 import Login from './components/Login';
 // Inscription désactivée : seuls les super admins créent les utilisateurs et organisations depuis la plateforme.
@@ -515,18 +516,14 @@ const App: React.FC = () => {
       view === 'courses' || view === 'formation' ? 'apex' : view === 'knowledge_base' ? 'coya_drive' : view;
     const nextView = REMOVED_APP_VIEWS.has(normalized) ? 'dashboard' : normalized;
     // #region agent log
-    fetch('/__debug/ingest', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-      body: JSON.stringify({
-        sessionId: '5fe008',
-        hypothesisId: 'H4',
-        location: 'App.tsx:handleSetView',
-        message: 'view_change',
-        data: { from: currentView, to: nextView },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
+    postCoyaDebugIngest({
+      sessionId: '5fe008',
+      hypothesisId: 'H4',
+      location: 'App.tsx:handleSetView',
+      message: 'view_change',
+      data: { from: currentView, to: nextView },
+      timestamp: Date.now(),
+    });
     // #endregion
     logger.logNavigation(currentView, nextView, 'handleSetView');
     logger.debug('state', `Setting currentView: ${currentView} → ${nextView}`);
@@ -1177,6 +1174,16 @@ const App: React.FC = () => {
       if (!ok) {
         const landing = getFirstAccessibleView(canAccessModule);
         logger.logNavigation(currentView, landing, 'Programmes projects shell access denied — redirect');
+        handleSetView(landing);
+      }
+      return;
+    }
+
+    if (currentView === 'demande_mobilite') {
+      const ok = canAccessModule('parc_auto') || canAccessModule('logistique');
+      if (!ok) {
+        const landing = getFirstAccessibleView(canAccessModule);
+        logger.logNavigation(currentView, landing, 'Mobility hub access denied — redirect');
         handleSetView(landing);
       }
       return;
@@ -3207,7 +3214,7 @@ const App: React.FC = () => {
 
   const renderView = () => {
     const ModuleComponent = getModuleViewComponent(currentView);
-    if (ModuleComponent) return <ModuleComponent />;
+    if (ModuleComponent) return <ModuleComponent key={currentView} />;
 
     switch (currentView) {
       case 'status_selector':

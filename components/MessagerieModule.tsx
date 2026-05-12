@@ -10,7 +10,6 @@ import type { NotificationAction, NotificationType } from '../services/notificat
 import { DataService } from '../services/dataService';
 import { supabase } from '../services/supabaseService';
 import * as messagingMentions from '../services/messagingMentions';
-import ModuleRichHub from './common/ModuleRichHub';
 
 type ConvKind = 'channel' | 'direct';
 type ConvFilter = 'all' | 'unread' | 'favorites';
@@ -1537,8 +1536,6 @@ const MessagerieModule: React.FC = () => {
           </div>
         </div>
       </header>
-
-      <ModuleRichHub variant="compact" isFr={isFr} excludeViews={['messagerie']} />
 
       {error && (
         <div className="mx-4 mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 shrink-0">

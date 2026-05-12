@@ -4,6 +4,7 @@ import { Project, User } from '../types';
 import TeamSelector from './common/TeamSelector';
 import OrganizationService from '../services/organizationService';
 import * as programmeService from '../services/programmeService';
+import { postCoyaDebugIngest } from '../utils/coyaDebugIngest';
 
 const PROJECT_TITLE_MIN = 10;
 const PROJECT_TITLE_MAX = 120;
@@ -59,33 +60,25 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
 
     useEffect(() => {
         // #region agent log
-        fetch('/__debug/ingest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-            body: JSON.stringify({
+        postCoyaDebugIngest({
                 sessionId: '5fe008',
                 hypothesisId: 'H1',
                 location: 'ProjectCreatePage.tsx:mount',
                 message: 'wizard_mounted',
                 data: { isEditMode },
                 timestamp: Date.now(),
-            }),
-        }).catch(() => {});
+            });
         // #endregion
         return () => {
             // #region agent log
-            fetch('/__debug/ingest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-                body: JSON.stringify({
+            postCoyaDebugIngest({
                     sessionId: '5fe008',
                     hypothesisId: 'H1',
                     location: 'ProjectCreatePage.tsx:unmount',
                     message: 'wizard_unmounted',
                     data: {},
                     timestamp: Date.now(),
-                }),
-            }).catch(() => {});
+                });
             // #endregion
         };
     }, [isEditMode]);
@@ -245,18 +238,14 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
 
             await onSave(projectToSave as Project | Omit<Project, 'id' | 'tasks' | 'risks'>);
             // #region agent log
-            fetch('/__debug/ingest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-                body: JSON.stringify({
+            postCoyaDebugIngest({
                     sessionId: '5fe008',
                     hypothesisId: 'H1',
                     location: 'ProjectCreatePage.tsx:handleSubmit',
                     message: 'onSave_resolved',
                     data: { isEditMode },
                     timestamp: Date.now(),
-                }),
-            }).catch(() => {});
+                });
             // #endregion
             if (!isEditMode) {
                 try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
@@ -273,18 +262,14 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
                 setIsLoading(false);
             });
             // #region agent log
-            fetch('/__debug/ingest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '5fe008' },
-                body: JSON.stringify({
+            postCoyaDebugIngest({
                     sessionId: '5fe008',
                     hypothesisId: 'H1',
                     location: 'ProjectCreatePage.tsx:handleSubmit',
                     message: 'wizard_onClose_after_success',
                     data: {},
                     timestamp: Date.now(),
-                }),
-            }).catch(() => {});
+                });
             // #endregion
             onClose();
         } else {

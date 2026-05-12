@@ -676,7 +676,6 @@ const TicketITModule: React.FC = () => {
 
       <ModuleRichHub
         isFr={isFr}
-        excludeViews={['ticket_it']}
         metrics={[
           {
             labelFr: 'Tickets total',

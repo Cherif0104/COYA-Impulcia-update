@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import VehicleRequestDetailPage from './VehicleRequestDetailPage';
 import { fleetDesignTokens } from './fleetDesignTokens';
 import { useLocalization } from '../../../contexts/LocalizationContext';
@@ -25,7 +25,7 @@ import OrganizationService from '../../../services/organizationService';
 import { useAuth } from '../../../contexts/AuthContextSupabase';
 import * as programmeService from '../../../services/programmeService';
 import type { Programme } from '../../../types';
-import ModuleRichHub from '../../common/ModuleRichHub';
+import { NAV_SESSION_MOBILITE_INTENT } from '../../../contexts/AppNavigationContext';
 
 function randomIdPart(): string {
   return typeof globalThis.crypto !== 'undefined' && 'randomUUID' in globalThis.crypto
@@ -104,7 +104,7 @@ function syncVehicleRequestUrl(id: string | null) {
 }
 
 const ParcAutoModule: React.FC = () => {
-  const { language } = useLocalization();
+  const { language, t } = useLocalization();
   const { user } = useAuth();
   const { hasPermission } = useModulePermissions();
   const isFr = language === 'fr';
@@ -208,6 +208,8 @@ const ParcAutoModule: React.FC = () => {
     (user?.role && ['super_administrator', 'administrator', 'manager'].includes(user.role)) || canWrite || canApproveModule;
 
   const [fleetPortfolioTab, setFleetPortfolioTab] = useState<'enterprise' | 'partners'>('enterprise');
+  const mobiliteIntentConsumedRef = useRef(false);
+  const [mobiliteHubBanner, setMobiliteHubBanner] = useState(false);
 
   const fleetKpis = useMemo(
     () => ({
@@ -258,6 +260,29 @@ const ParcAutoModule: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (mobiliteIntentConsumedRef.current) return;
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(NAV_SESSION_MOBILITE_INTENT);
+    } catch {
+      return;
+    }
+    if (raw !== 'internal') return;
+    mobiliteIntentConsumedRef.current = true;
+    try {
+      sessionStorage.removeItem(NAV_SESSION_MOBILITE_INTENT);
+    } catch {
+      /* ignore */
+    }
+    setFleetPortfolioTab('enterprise');
+    setShowRequestForm(true);
+    setMobiliteHubBanner(true);
+    requestAnimationFrame(() => {
+      document.getElementById('parc-auto-vehicle-requests')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
 
   useEffect(() => {
     const onPop = () => {
@@ -649,6 +674,14 @@ const ParcAutoModule: React.FC = () => {
         </div>
       ) : (
         <div className="p-6 space-y-6 text-gray-900">
+      {mobiliteHubBanner ? (
+        <div
+          role="status"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 shadow-sm"
+        >
+          {t('mobility_suite_banner_parc')}
+        </div>
+      ) : null}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -665,7 +698,6 @@ const ParcAutoModule: React.FC = () => {
 
       <ModuleRichHub
         isFr={isFr}
-        excludeViews={['parc_auto']}
         metrics={[
           {
             labelFr: 'Véhicules',
@@ -1361,7 +1393,7 @@ const ParcAutoModule: React.FC = () => {
       </section>
       )}
 
-      <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <section id="parc-auto-vehicle-requests" className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
             <i className="fas fa-truck-loading text-emerald-600" />

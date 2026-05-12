@@ -96,7 +96,6 @@ const StudioModule: React.FC = () => {
 
       <ModuleRichHub
         isFr={isFr}
-        excludeViews={['studio']}
         metrics={[
           {
             labelFr: 'Actifs studio',

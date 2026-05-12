@@ -212,7 +212,6 @@ const TriniteModule: React.FC = () => {
 
       <ModuleRichHub
         isFr={isFr}
-        excludeViews={['trinite']}
         metrics={[
           {
             labelFr: 'Profils scorés (période)',

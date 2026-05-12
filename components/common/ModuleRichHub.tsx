@@ -1,5 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
-import { useAppNavigation } from '../../contexts/AppNavigationContext';
+import React from 'react';
 import { Card, CardContent } from '../ui/Card';
 import { cn } from '../ui/cn';
 
@@ -11,13 +10,6 @@ export type HubMetric = {
   hintEn?: string;
 };
 
-export type HubQuickLink = {
-  view: string;
-  labelFr: string;
-  labelEn: string;
-  icon: string;
-};
-
 export type HubSection = {
   key: string;
   titleFr: string;
@@ -27,97 +19,19 @@ export type HubSection = {
   bulletsEn: string[];
 };
 
-const STANDARD_LINKS: HubQuickLink[] = [
-  { view: 'dashboard', labelFr: 'Tableau de bord', labelEn: 'Dashboard', icon: 'fas fa-th-large' },
-  { view: 'apex', labelFr: 'APEX', labelEn: 'APEX', icon: 'fas fa-book-open' },
-  { view: 'jobs', labelFr: 'Emplois', labelEn: 'Jobs', icon: 'fas fa-briefcase' },
-  { view: 'crm_sales', labelFr: 'CRM & Ventes', labelEn: 'CRM & Sales', icon: 'fas fa-users' },
-  { view: 'trinite', labelFr: 'Trinité', labelEn: 'Trinité', icon: 'fas fa-gem' },
-  { view: 'logistique', labelFr: 'Logistique', labelEn: 'Logistics', icon: 'fas fa-boxes' },
-  { view: 'studio', labelFr: 'Studio', labelEn: 'Studio', icon: 'fas fa-video' },
-  { view: 'parc_auto', labelFr: 'Parc Auto', labelEn: 'Fleet', icon: 'fas fa-car' },
-  { view: 'messagerie', labelFr: 'Messagerie', labelEn: 'Messaging', icon: 'fas fa-envelope' },
-  { view: 'ticket_it', labelFr: 'Ticket IT', labelEn: 'IT tickets', icon: 'fas fa-ticket-alt' },
-  { view: 'coya_drive', labelFr: 'COYA Drive', labelEn: 'COYA Drive', icon: 'fas fa-folder-open' },
-  { view: 'daf_services', labelFr: 'Moyens généraux', labelEn: 'General services', icon: 'fas fa-clipboard-check' },
-  { view: 'qualite', labelFr: 'Qualité', labelEn: 'Quality', icon: 'fas fa-check-double' },
-  { view: 'collecte', labelFr: 'Collecte', labelEn: 'Data collection', icon: 'fas fa-poll-h' },
-  { view: 'settings', labelFr: 'Paramètres', labelEn: 'Settings', icon: 'fas fa-sliders-h' },
-];
-
-/** Liens transverses entre modules (pattern hub COYA / Figma Make). */
-export function crossModuleQuickLinks(excludeViews: string[]): HubQuickLink[] {
-  const ex = new Set(
-    excludeViews.flatMap((v) => (v === 'formation' || v === 'courses' ? ['apex', 'formation', 'courses', 'knowledge_base'] : [v])),
-  );
-  return STANDARD_LINKS.filter((l) => !ex.has(l.view));
-}
-
 export interface ModuleRichHubProps {
   isFr: boolean;
-  variant?: 'full' | 'compact';
-  /** Prioritaire sur `useAppNavigation` quand fourni (ex. pages déjà reliées à `setView`). */
-  setView?: (view: string) => void;
   metrics?: HubMetric[];
-  quickLinks?: HubQuickLink[];
-  /** Utilisé si `quickLinks` absent : tous les modules sauf ceux listés. */
-  excludeViews?: string[];
   sections?: HubSection[];
   className?: string;
 }
 
 const ModuleRichHub: React.FC<ModuleRichHubProps> = ({
   isFr,
-  variant = 'full',
-  setView: setViewProp,
   metrics = [],
-  quickLinks: quickLinksProp,
-  excludeViews = [],
   sections = [],
   className,
 }) => {
-  const nav = useAppNavigation();
-  const navigate = useCallback(
-    (view: string) => {
-      const fn = setViewProp ?? nav?.setView;
-      if (fn) fn(view);
-    },
-    [setViewProp, nav?.setView],
-  );
-  const canNavigate = Boolean(setViewProp ?? nav?.setView);
-
-  const quickLinks = useMemo(
-    () => quickLinksProp ?? crossModuleQuickLinks(excludeViews),
-    [quickLinksProp, excludeViews],
-  );
-
-  if (variant === 'compact') {
-    return (
-      <div
-        className={cn(
-          'flex flex-wrap items-center gap-2 border-b border-slate-200/90 bg-slate-50/95 px-3 py-2 shrink-0',
-          className,
-        )}
-      >
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 shrink-0">
-          {isFr ? 'Raccourcis COYA' : 'COYA shortcuts'}
-        </span>
-        {quickLinks.slice(0, 14).map((link) => (
-          <button
-            key={link.view}
-            type="button"
-            disabled={!canNavigate}
-            onClick={() => navigate(link.view)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
-          >
-            <i className={cn(link.icon, 'text-slate-400')} aria-hidden />
-            {isFr ? link.labelFr : link.labelEn}
-          </button>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <Card className={cn('border-slate-200 shadow-sm', className)}>
       <CardContent className="space-y-5">
@@ -128,8 +42,8 @@ const ModuleRichHub: React.FC<ModuleRichHubProps> = ({
             </p>
             <p className="text-sm font-medium text-slate-800 mt-0.5">
               {isFr
-                ? 'Indicateurs de ce module et accès rapides vers le reste de la plateforme.'
-                : 'Indicators for this module and quick access to the rest of the platform.'}
+                ? 'Indicateurs et synthèse de ce module.'
+                : 'Indicators and summary for this module.'}
             </p>
           </div>
         </div>
@@ -146,25 +60,6 @@ const ModuleRichHub: React.FC<ModuleRichHubProps> = ({
                 ) : null}
               </div>
             ))}
-          </div>
-        ) : null}
-        {quickLinks.length > 0 ? (
-          <div>
-            <p className="text-xs font-semibold text-slate-700 mb-2">{isFr ? 'Navigation rapide' : 'Quick navigation'}</p>
-            <div className="flex flex-wrap gap-2">
-              {quickLinks.map((link) => (
-                <button
-                  key={link.view}
-                  type="button"
-                  disabled={!canNavigate}
-                  onClick={() => navigate(link.view)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 hover:border-emerald-300 hover:bg-emerald-50/40 disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  <i className={cn(link.icon, 'text-slate-400')} aria-hidden />
-                  {isFr ? link.labelFr : link.labelEn}
-                </button>
-              ))}
-            </div>
           </div>
         ) : null}
         {sections.map((sec) => (

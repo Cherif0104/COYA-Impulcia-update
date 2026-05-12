@@ -169,7 +169,6 @@ const DafServicesModule: React.FC = () => {
 
       <ModuleRichHub
         isFr={language === Language.FR}
-        excludeViews={['daf_services']}
         metrics={kpis.map((k) => ({
           labelFr: k.label,
           labelEn: k.label,

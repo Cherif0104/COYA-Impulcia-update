@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useLocalization } from '../contexts/LocalizationContext';
 import { useAuth } from '../contexts/AuthContextSupabase';
 import { Project, User, TimeLog, Objective, ProjectAttachment, MANAGEMENT_ROLES, Role, ProjectBudgetLine, Task, SUPPORTED_CURRENCIES, TASK_SCORE_PERCENT_EMPLOYEE, TASK_SCORE_PERCENT_MANAGER, Language, RESOURCE_MANAGEMENT_ROLES } from '../types';
-import { NAV_SESSION_OPEN_PROGRAMME_ID, NAV_SESSION_PROGRAMMES_PROJECTS_TAB } from '../contexts/AppNavigationContext';
+import { NAV_SESSION_OPEN_PROGRAMME_ID, NAV_SESSION_PROGRAMMES_PROJECTS_TAB, NAV_QUERY_MOBILITE_PROJECT_ID } from '../contexts/AppNavigationContext';
 import { applyProjectTasksAutoClose, getTaskGovernance, isTaskScheduledFrozen as isTaskFrozen } from '../utils/projectTaskLifecycle';
 import { buildProjectCockpitReadModel } from '../services/projectCockpitReadModel';
 import { applyTaskStatusChange, dispatchProjectDomainEvents } from '../services/domain';
@@ -1893,6 +1893,26 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
                                 >
                                         <i className="fas fa-paperclip" />
                                         {isFr ? 'Documents' : 'Documents'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        try {
+                                            const u = new URL(window.location.href);
+                                            u.searchParams.set(
+                                                NAV_QUERY_MOBILITE_PROJECT_ID,
+                                                String(currentProject.id),
+                                            );
+                                            window.history.replaceState({}, '', u.toString());
+                                        } catch {
+                                            /* ignore */
+                                        }
+                                        setView?.('demande_mobilite');
+                                    }}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--coya-enterprise-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--coya-enterprise-text)] hover:bg-[#F8FAFC]"
+                                >
+                                    <i className="fas fa-route" />
+                                    {t('mobility_link_project_workspace')}
                                 </button>
                             <button
                                 type="button"

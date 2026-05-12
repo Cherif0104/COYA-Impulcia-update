@@ -831,8 +831,6 @@ const CRM: React.FC<CRMProps> = ({
             <div className="px-4 sm:px-6 lg:px-8 pb-4">
               <ModuleRichHub
                 isFr={language === Language.FR}
-                setView={setView}
-                excludeViews={['crm_sales']}
                 sections={[
                   {
                     key: 'crm-scope',
