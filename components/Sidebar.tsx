@@ -253,6 +253,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     return out;
   }, [canAccessModule]);
 
+  /** Remonte la liste nav au passage chargement → prêt ou changement d’entrées (réconciliation React / insertBefore). */
+  const navListMountKey = useMemo(
+    () => (permissionsLoading ? 'nav-loading' : allNavItems.map((i) => i.view).join(':')),
+    [permissionsLoading, allNavItems],
+  );
+
   const settingsItem: SidebarItem = {
     icon: 'fas fa-cog',
     labelKey: 'settings',
@@ -328,27 +334,27 @@ const Sidebar: React.FC<SidebarProps> = ({
       } ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       style={{ backgroundColor: 'var(--coya-shell-sidebar-bg)' }}
     >
-      {/* Logo */}
-      <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-5">
-        {!effectiveCollapsed ? (
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-coya-institutional to-coya-institutional-secondary shadow-[0_8px_24px_rgba(13,122,43,0.35)] shrink-0">
-              <span className="text-lg font-bold text-white">C</span>
-            </div>
-            <div className="min-w-0">
-              <span className="block truncate text-xl font-bold tracking-wide text-white">COYA</span>
-              <p className="mt-0.5 text-[10px] leading-none text-white/40">ERP Management</p>
-            </div>
-          </div>
-        ) : (
-          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-coya-institutional to-coya-institutional-secondary shadow-[0_8px_24px_rgba(13,122,43,0.35)]">
+      {/* Logo — même nombre d’enfants flex en tout temps (évite insertBefore au survol menu compact). */}
+      <div
+        className={`flex shrink-0 items-center border-b border-white/10 px-4 py-5 ${
+          effectiveCollapsed ? 'justify-center gap-2 lg:justify-between' : 'justify-between'
+        }`}
+      >
+        <div
+          className={`flex min-w-0 flex-1 items-center gap-3 ${effectiveCollapsed ? 'justify-center lg:justify-start' : ''}`}
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-coya-institutional to-coya-institutional-secondary shadow-[0_8px_24px_rgba(13,122,43,0.35)]">
             <span className="text-lg font-bold text-white">C</span>
           </div>
-        )}
+          <div className={`min-w-0 ${effectiveCollapsed ? 'hidden' : ''}`}>
+            <span className="block truncate text-xl font-bold tracking-wide text-white">COYA</span>
+            <p className="mt-0.5 text-[10px] leading-none text-white/40">ERP Management</p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={toggleCollapsed}
-          className="ml-auto hidden h-7 w-7 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20 lg:flex"
+          className={`hidden h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20 lg:flex ${effectiveCollapsed ? '' : 'ml-auto'}`}
           aria-label={collapsed ? 'Étendre le menu' : 'Réduire le menu'}
         >
           <i className={`fas fa-chevron-${collapsed ? 'right' : 'left'} text-[10px]`} />
@@ -365,17 +371,19 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-3">
-        {!effectiveCollapsed && (
-          <p className="mb-2 mt-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">
-            Menu Principal
-          </p>
-        )}
+        <p
+          className={`mb-2 mt-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/30 ${
+            effectiveCollapsed ? 'hidden' : ''
+          }`}
+        >
+          Menu Principal
+        </p>
         {permissionsLoading ? (
           <div className="flex justify-center py-8">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
           </div>
         ) : (
-          <ul className="space-y-0.5">
+          <ul key={navListMountKey} className="space-y-0.5">
             {allNavItems.map((item) => {
               /** Clés distinctes pour APEX plein vs compact : même `view` mais arborescence incompatible → évite NotFoundError insertBefore (réconciliation React). */
               const rowKey =
@@ -500,22 +508,24 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Profil */}
       <div className="shrink-0 border-t border-white/10 p-3">
-        {!permissionsLoading && canAccessModule(settingsItem.view as ModuleName) && (
-          <div className="mb-1">
-            <NavItem
-              item={settingsItem}
-              active={isItemActive(settingsItem.view)}
-              collapsed={effectiveCollapsed}
-              label={formatSidebarMenuLabel(t('settings') || 'Paramètres', language)}
-              onClick={() => {
-                setView(settingsItem.view);
-                onCloseMobile?.();
-                if (collapsed) setHoverPeekOpen(false);
-              }}
-              dataTestId="nav-settings"
-            />
-          </div>
-        )}
+        <div
+          className={`mb-1 ${
+            permissionsLoading || !canAccessModule(settingsItem.view as ModuleName) ? 'hidden' : ''
+          }`}
+        >
+          <NavItem
+            item={settingsItem}
+            active={isItemActive(settingsItem.view)}
+            collapsed={effectiveCollapsed}
+            label={formatSidebarMenuLabel(t('settings') || 'Paramètres', language)}
+            onClick={() => {
+              setView(settingsItem.view);
+              onCloseMobile?.();
+              if (collapsed) setHoverPeekOpen(false);
+            }}
+            dataTestId="nav-settings"
+          />
+        </div>
         <button
           type="button"
           onClick={() => setProfileOpen((v) => !v)}
@@ -526,55 +536,56 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-coya-institutional to-coya-institutional-secondary ring-2 ring-white/10">
             <span className="text-xs font-bold text-white">{userInitials}</span>
           </div>
-          {!effectiveCollapsed && (
-            <>
-              <div className="flex-1 text-left min-w-0">
-                <p className="truncate text-sm font-medium leading-none text-white">{user?.name || 'Utilisateur'}</p>
-                <p className="mt-0.5 truncate text-xs text-white/40">{user?.role?.replace(/_/g, ' ') || 'Membre'}</p>
-              </div>
-              <i className="fas fa-chevron-down text-[10px] text-white/40" />
-            </>
-          )}
-        </button>
-        {!effectiveCollapsed && profileOpen && (
-          <div className="mt-1 overflow-hidden rounded-xl bg-white/10">
-            <button
-              type="button"
-              onClick={() => {
-                setView('settings');
-                setProfileOpen(false);
-                onCloseMobile?.();
-                if (collapsed) setHoverPeekOpen(false);
-              }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <i className="fas fa-user text-[12px]" /> Mon profil
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setView('settings');
-                setProfileOpen(false);
-                onCloseMobile?.();
-                if (collapsed) setHoverPeekOpen(false);
-              }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <i className="fas fa-cog text-[12px]" /> Paramètres
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                signOut();
-                setProfileOpen(false);
-                if (collapsed) setHoverPeekOpen(false);
-              }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-white/10 hover:text-red-300"
-            >
-              <i className="fas fa-sign-out-alt text-[12px]" /> Déconnexion
-            </button>
+          <div className={`min-w-0 flex-1 text-left ${effectiveCollapsed ? 'hidden' : ''}`}>
+            <p className="truncate text-sm font-medium leading-none text-white">{user?.name || 'Utilisateur'}</p>
+            <p className="mt-0.5 truncate text-xs text-white/40">{user?.role?.replace(/_/g, ' ') || 'Membre'}</p>
           </div>
-        )}
+          <i
+            className={`fas fa-chevron-down shrink-0 text-[10px] text-white/40 ${effectiveCollapsed ? 'hidden' : ''}`}
+            aria-hidden={effectiveCollapsed}
+          />
+        </button>
+        <div
+          className={`mt-1 overflow-hidden rounded-xl bg-white/10 ${
+            effectiveCollapsed || !profileOpen ? 'hidden' : ''
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setView('settings');
+              setProfileOpen(false);
+              onCloseMobile?.();
+              if (collapsed) setHoverPeekOpen(false);
+            }}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <i className="fas fa-user text-[12px]" /> Mon profil
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setView('settings');
+              setProfileOpen(false);
+              onCloseMobile?.();
+              if (collapsed) setHoverPeekOpen(false);
+            }}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <i className="fas fa-cog text-[12px]" /> Paramètres
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              signOut();
+              setProfileOpen(false);
+              if (collapsed) setHoverPeekOpen(false);
+            }}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-white/10 hover:text-red-300"
+          >
+            <i className="fas fa-sign-out-alt text-[12px]" /> Déconnexion
+          </button>
+        </div>
       </div>
     </aside>
   );
