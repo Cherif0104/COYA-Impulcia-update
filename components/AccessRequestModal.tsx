@@ -179,8 +179,8 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
               administrateur.
             </p>
             <p className="text-xs text-white/60 mb-5">
-              Après validation, vous pourrez définir votre mot de passe via « Mot de passe oublié » sur cet écran, puis
-              vous connecter.
+              Après validation par un administrateur, votre compte sera activé avec un mot de passe par défaut qui vous
+              sera communiqué. Vous pourrez ensuite le modifier dans Paramètres → Profil (ou via « Mot de passe oublié »).
             </p>
             <Button type="button" className="w-full" onClick={onClose}>
               Fermer

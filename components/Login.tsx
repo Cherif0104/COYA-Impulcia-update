@@ -199,18 +199,23 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
     setForgotPasswordError('');
     setForgotPasswordSent(false);
     try {
+      // PB5 : plus d'e-mail de réinitialisation Supabase. On notifie les administrateurs via la
+      // RPC SECURITY DEFINER `request_password_reset` (anti-énumération : renvoie toujours sans
+      // erreur, qu'un compte existe ou non). L'admin générera ensuite un mot de passe générique.
       const { supabase } = await import('../services/supabaseService');
-      const { getPasswordRecoveryRedirectUrl } = await import('../utils/authRecoveryUrl');
-      const { error: err } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
-        redirectTo: getPasswordRecoveryRedirectUrl(),
+      const { error: err } = await supabase.rpc('request_password_reset', {
+        p_email: forgotPasswordEmail.trim(),
       });
       if (err) {
-        setForgotPasswordError(err.message || t('login_error_generic'));
-        return;
+        // En cas d'erreur technique inattendue, on reste générique (pas de divulgation).
+        console.error('Erreur demande de réinitialisation:', err);
       }
+      // Message identique quel que soit le cas (le compte existe ou non).
       setForgotPasswordSent(true);
     } catch (err: any) {
-      setForgotPasswordError(err?.message || t('login_error_generic'));
+      console.error('Erreur demande de réinitialisation:', err);
+      // On affiche tout de même le message générique de succès (anti-énumération).
+      setForgotPasswordSent(true);
     } finally {
       setForgotPasswordLoading(false);
     }
@@ -481,10 +486,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
             <h3 className="text-lg font-semibold text-white mb-3">Mot de passe oublié</h3>
             {forgotPasswordSent ? (
               <p className="text-sm text-white/80 mb-4">
-                Si un compte existe pour cette adresse, un lien de réinitialisation a été envoyé. Vérifiez votre boîte de réception et les spams.
+                Si un compte existe pour cet email, votre demande a été transmise à un administrateur. Il vous communiquera un nouveau mot de passe que vous pourrez ensuite modifier dans Paramètres → Profil.
               </p>
             ) : (
               <form onSubmit={handleForgotPassword} className="space-y-3">
+                <p className="text-sm text-white/70">
+                  Saisissez votre adresse e-mail : votre demande sera transmise à un administrateur qui vous fournira un nouveau mot de passe.
+                </p>
                 <label htmlFor="forgot-email" className="block text-sm font-medium text-white/85">Adresse e-mail</label>
                 <Input
                   id="forgot-email"
@@ -501,7 +509,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
                     Annuler
                   </Button>
                   <Button type="submit" disabled={forgotPasswordLoading}>
-                    {forgotPasswordLoading ? t('login_loading') : 'Envoyer le lien'}
+                    {forgotPasswordLoading ? t('login_loading') : 'Envoyer la demande'}
                   </Button>
                 </div>
               </form>

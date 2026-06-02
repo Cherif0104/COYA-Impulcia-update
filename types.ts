@@ -294,6 +294,11 @@ export interface User {
   requestedDepartmentId?: string | null;
   /** Poste/fonction souhaité saisi librement lors d’une demande d’accès. */
   requestedPoste?: string | null;
+  /**
+   * `false` tant que l’utilisateur n’a pas remplacé son mot de passe par défaut auto-généré.
+   * Tant que `false`, un admin peut consulter / régénérer le mot de passe provisoire (PB4).
+   */
+  passwordChanged?: boolean;
 }
 
 export type RoleApprovalDecision = 'approved' | 'rejected';

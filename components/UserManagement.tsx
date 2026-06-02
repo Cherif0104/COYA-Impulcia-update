@@ -27,10 +27,42 @@ const UserEditModal: React.FC<{
     allUsers?: User[];
     currentUserId?: string;
     canAssignReservedRoles: boolean;
-}> = ({ user, onClose, onSave, isLoading = false, allUsers = [], currentUserId, canAssignReservedRoles }) => {
+    /** Organisation de l'admin (repli si l'utilisateur est rattaché à une org sans pilier). */
+    adminOrgId?: string;
+}> = ({ user, onClose, onSave, isLoading = false, allUsers = [], currentUserId, canAssignReservedRoles, adminOrgId = '' }) => {
     const { t } = useLocalization();
     const [selectedRole, setSelectedRole] = useState<Role>(user.role);
     const PROTECTED_ROLES: Role[] = ['super_administrator', 'administrator', 'manager'];
+
+    // (Ré)affectation du département (pilier) depuis la fiche.
+    const [departmentChoices, setDepartmentChoices] = useState<Department[]>([]);
+    const [selectedDeptId, setSelectedDeptId] = useState<string>('');
+    const [initialDeptId, setInitialDeptId] = useState<string>('');
+    const [deptSaving, setDeptSaving] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        const orgId = String(user.organizationId || adminOrgId || '');
+        (async () => {
+            const userKey = String(user.id || '');
+            const [orgDepts, fallbackDepts, links] = await Promise.all([
+                orgId ? DepartmentService.getDepartmentsByOrganizationId(orgId) : Promise.resolve([]),
+                adminOrgId && adminOrgId !== orgId
+                    ? DepartmentService.getDepartmentsByOrganizationId(adminOrgId)
+                    : Promise.resolve([]),
+                userKey ? DepartmentService.getUserDepartmentLinks(userKey) : Promise.resolve([]),
+            ]);
+            if (cancelled) return;
+            const list = (orgDepts.length ? orgDepts : fallbackDepts).filter((d) => d.isActive !== false);
+            setDepartmentChoices(list);
+            const current = links[0]?.departmentId ? String(links[0].departmentId) : '';
+            setInitialDeptId(current);
+            setSelectedDeptId(current);
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [user.id, user.organizationId, adminOrgId]);
     
     // Vérifier si l'utilisateur actuel est le dernier Super Admin
     const isLastSuperAdmin = user.role === 'super_administrator' && 
@@ -42,7 +74,7 @@ const UserEditModal: React.FC<{
     // Vérifier si c'est l'utilisateur actuellement connecté qui change de rôle
     const isChangingCurrentUser = currentUserId && String(user.id) === String(currentUserId);
     
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         // Protection : Ne pas permettre de retirer le dernier Super Admin
@@ -70,12 +102,26 @@ const UserEditModal: React.FC<{
             );
             if (!confirmed) return;
         }
-        
+
+        // (Ré)affecter le département (pilier) si modifié, avant la mise à jour du rôle.
+        if (selectedDeptId && selectedDeptId !== initialDeptId && user.id) {
+            setDeptSaving(true);
+            const ok = await DepartmentService.setUserDepartments(String(user.id), [selectedDeptId]);
+            setDeptSaving(false);
+            if (!ok) {
+                alert(
+                    "L'affectation du département a échoué (vérifiez vos droits administrateur / RLS sur user_departments). Le rôle n'a pas été modifié.",
+                );
+                return;
+            }
+            setInitialDeptId(selectedDeptId);
+        }
+
         onSave(user.id, selectedRole);
     }
     
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+        <div translate="no" className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 border-b">
@@ -119,13 +165,13 @@ const UserEditModal: React.FC<{
                                 <option value="team_lead">{t('team_lead')}</option>
                             </optgroup>
                             <optgroup label={t('staff_category')}>
-                                <option value="intern" disabled={!canAssignReservedRoles}>{t('intern')}{!canAssignReservedRoles ? ' (SENEGEL)' : ''}</option>
-                                <option value="supervisor" disabled={!canAssignReservedRoles}>{t('supervisor')}{!canAssignReservedRoles ? ' (SENEGEL)' : ''}</option>
-                                <option value="manager" disabled={!canAssignReservedRoles}>{t('manager')}{!canAssignReservedRoles ? ' (SENEGEL)' : ''}</option>
-                                <option value="administrator" disabled={!canAssignReservedRoles}>{t('administrator')}{!canAssignReservedRoles ? ' (SENEGEL)' : ''}</option>
+                                <option value="intern" disabled={!canAssignReservedRoles}>{`${t('intern')}${!canAssignReservedRoles ? ' (SENEGEL)' : ''}`}</option>
+                                <option value="supervisor" disabled={!canAssignReservedRoles}>{`${t('supervisor')}${!canAssignReservedRoles ? ' (SENEGEL)' : ''}`}</option>
+                                <option value="manager" disabled={!canAssignReservedRoles}>{`${t('manager')}${!canAssignReservedRoles ? ' (SENEGEL)' : ''}`}</option>
+                                <option value="administrator" disabled={!canAssignReservedRoles}>{`${t('administrator')}${!canAssignReservedRoles ? ' (SENEGEL)' : ''}`}</option>
                             </optgroup>
                             <optgroup label={t('super_admin_category')}>
-                                <option value="super_administrator" disabled={!canAssignReservedRoles}>{t('super_administrator')}{!canAssignReservedRoles ? ' (SENEGEL)' : ''}</option>
+                                <option value="super_administrator" disabled={!canAssignReservedRoles}>{`${t('super_administrator')}${!canAssignReservedRoles ? ' (SENEGEL)' : ''}`}</option>
                             </optgroup>
                         </select>
                         
@@ -155,6 +201,35 @@ const UserEditModal: React.FC<{
                                 Vous modifiez votre propre rôle. Cela affectera vos accès.
                             </p>
                         )}
+
+                        <div className="mt-5">
+                            <label htmlFor="dept-select" className="block text-sm font-medium text-gray-700">
+                                Département (pilier)
+                            </label>
+                            {departmentChoices.length === 0 ? (
+                                <p className="mt-1 text-xs text-amber-700">
+                                    Aucun pilier disponible. Créez-en un dans l’onglet Départements.
+                                </p>
+                            ) : (
+                                <select
+                                    id="dept-select"
+                                    value={selectedDeptId}
+                                    onChange={(e) => setSelectedDeptId(e.target.value)}
+                                    disabled={isLoading || deptSaving}
+                                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                                >
+                                    <option value="">— Aucun pilier —</option>
+                                    {departmentChoices.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                            <p className="mt-1 text-xs text-gray-500">
+                                Réaffecte le pilier de l’utilisateur. La modification est enregistrée à l’enregistrement.
+                            </p>
+                        </div>
                     </div>
                     <div className="p-4 bg-gray-50 border-t flex justify-end space-x-2">
                         <button 
@@ -167,11 +242,11 @@ const UserEditModal: React.FC<{
                         </button>
                         <button 
                             type="submit" 
-                            disabled={isLoading || (isLastSuperAdmin && selectedRole !== 'super_administrator')}
+                            disabled={isLoading || deptSaving || (isLastSuperAdmin && selectedRole !== 'super_administrator')}
                             className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
                         >
-                            {isLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
-                            {isLoading ? 'Enregistrement...' : t('save')}
+                            {(isLoading || deptSaving) && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
+                            {isLoading || deptSaving ? 'Enregistrement...' : t('save')}
                         </button>
                     </div>
                 </form>
@@ -179,13 +254,6 @@ const UserEditModal: React.FC<{
         </div>
     );
 };
-
-function generateProvisionPassword(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%&*';
-    const arr = new Uint8Array(20);
-    crypto.getRandomValues(arr);
-    return Array.from(arr, (b) => chars[b % chars.length]).join('');
-}
 
 const CreateUserModal: React.FC<{
     open: boolean;
@@ -195,6 +263,8 @@ const CreateUserModal: React.FC<{
     currentRole: Role | undefined;
     currentOrganizationId: string | null | undefined;
     canAssignReservedRoles: boolean;
+    /** Profil (UUID `profiles.id`) de l'administrateur courant — validateur de l'activation. */
+    approverProfileId: string;
     onRefreshUsers?: () => Promise<void>;
     onLocalUsersReplace: (users: User[]) => void;
 }> = ({
@@ -205,6 +275,7 @@ const CreateUserModal: React.FC<{
     currentRole,
     currentOrganizationId,
     canAssignReservedRoles,
+    approverProfileId,
     onRefreshUsers,
     onLocalUsersReplace,
 }) => {
@@ -215,11 +286,12 @@ const CreateUserModal: React.FC<{
     const [role, setRole] = useState<Role>('student');
     const [orgId, setOrgId] = useState<string>('');
     const [orgChoices, setOrgChoices] = useState<{ id: string; name: string }[]>([]);
-    const [sendInviteEmail, setSendInviteEmail] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [creationSuccess, setCreationSuccess] = useState<{ password: string; email: string; flow: 'approval' | 'direct' } | null>(null);
     const [posteId, setPosteId] = useState<string>('');
     const [posteChoices, setPosteChoices] = useState<Poste[]>([]);
+    const [departmentId, setDepartmentId] = useState<string>('');
+    const [departmentChoices, setDepartmentChoices] = useState<Department[]>([]);
 
     const singleOrgMode = isSingleOrganizationTenantMode();
     const primaryOrgId = getPrimaryOrganizationId();
@@ -239,7 +311,7 @@ const CreateUserModal: React.FC<{
         setPhone('');
         setRole('student');
         setPosteId('');
-        setSendInviteEmail(true);
+        setDepartmentId('');
         setSubmitting(false);
         setCreationSuccess(null);
         if (singleOrgMode) {
@@ -268,6 +340,20 @@ const CreateUserModal: React.FC<{
         let cancelled = false;
         void listPostes(orgForPostes).then((list) => {
             if (!cancelled) setPosteChoices(list);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [open, orgForPostes]);
+
+    // Charger les piliers (départements) de l'organisation cible afin de pouvoir
+    // affecter le collaborateur dès la création (cohérent avec l'approbation).
+    useEffect(() => {
+        if (!open) return;
+        let cancelled = false;
+        setDepartmentId('');
+        void DepartmentService.getDepartmentsByOrganizationId(orgForPostes).then((list) => {
+            if (!cancelled) setDepartmentChoices(list.filter((d) => d.isActive !== false));
         });
         return () => {
             cancelled = true;
@@ -305,40 +391,64 @@ const CreateUserModal: React.FC<{
             showToast('Veuillez sélectionner un poste pour ce collaborateur.', 'error');
             return;
         }
+        if (departmentChoices.length > 0 && !departmentId.trim()) {
+            showToast('Veuillez sélectionner un département (pilier) pour ce collaborateur.', 'error');
+            return;
+        }
+        if (!approverProfileId) {
+            showToast('Impossible de déterminer l’administrateur validateur. Reconnectez-vous puis réessayez.', 'error');
+            return;
+        }
         const needsApproval = roleRequiresApprovalWhenCreatedByAdmin(role);
+        const normalizedRole = AuthService.normalizeRoleForStorage(role);
+        const selectedPosteName = posteChoices.find((p) => String(p.id) === posteId.trim())?.name || null;
+        const chosenDepartmentId = departmentId.trim() || null;
         setSubmitting(true);
         try {
-            const password = generateProvisionPassword();
-            const { user, error } = await AuthService.signUpIsolated({
-                email: em,
-                password,
+            // 1. Créer la demande/profil (pending, sans compte auth) via la RPC SECURITY DEFINER
+            //    `request_access` : aucun client Supabase éphémère (plus d'avertissement
+            //    « Multiple GoTrueClient »), validation e-mail/pilier côté serveur et idempotence.
+            const req = await AuthService.requestAccess({
                 full_name: name,
+                email: em,
                 phone_number: phone.trim() || undefined,
-                role,
                 organization_id: targetOrgId,
-                poste_id: posteId.trim() || undefined,
+                requested_department_id: chosenDepartmentId,
+                requested_poste: selectedPosteName,
             });
-            if (error) throw error instanceof Error ? error : new Error(String(error));
-            if (!user) throw new Error('Compte non créé');
+            if (req.error) throw req.error instanceof Error ? req.error : new Error(String(req.error));
+            const newProfileId = req.profileId;
+            if (!newProfileId) throw new Error('Création du profil impossible (identifiant manquant).');
 
-            if (sendInviteEmail) {
-                const { error: reErr } = await AuthService.resetPassword(em);
-                if (reErr) {
+            // 2. Forcer le rôle choisi (la RPC enregistre un rôle minimal par défaut).
+            const { error: roleErr } = await supabase
+                .from('profiles')
+                .update({ pending_role: normalizedRole, updated_at: new Date().toISOString() })
+                .eq('id', newProfileId);
+            if (roleErr) throw roleErr;
+
+            // 3. Provisionner le compte auth (Edge Function service_role) : mot de passe par défaut
+            //    généré + e-mail confirmé + stockage dans `user_provisional_passwords`.
+            const provisioning = await DataService.provisionAccessAccount(newProfileId);
+            const password = provisioning.password;
+            if (!password) throw new Error('Le serveur n’a pas renvoyé de mot de passe.');
+
+            // 4. Rôle à création directe : activer immédiatement avec le rôle + le pilier choisis
+            //    (l'organisation du profil est alignée sur celle du pilier). Sinon le profil reste
+            //    en attente et apparaît dans l'onglet « Demandes d'accès » pour validation.
+            if (!needsApproval) {
+                const res = await DataService.approveProfileRole({
+                    profileId: newProfileId,
+                    approverId: approverProfileId,
+                    departmentId: chosenDepartmentId,
+                });
+                if (res.error) throw res.error;
+                if ((res as { departmentAssignmentFailed?: boolean }).departmentAssignmentFailed) {
                     showToast(
-                        'Compte créé (en attente de validation). L’envoi du lien mot de passe a échoué — transmettez le mot de passe provisoire affiché ci-dessous ou utilisez « Reset MDP » depuis la liste.',
+                        'Compte créé, mais le rattachement au pilier a échoué (RLS). Réaffectez le département depuis la fiche de l’utilisateur.',
                         'error',
                     );
-                } else {
-                    showToast(
-                        'Compte créé. Un e-mail a été envoyé ; le mot de passe provisoire reste affiché ci-dessous en secours.',
-                        'success',
-                    );
                 }
-            } else {
-                showToast(
-                    'Compte créé. Transmettez le mot de passe provisoire (affiché ci-dessous) ; la personne pourra le changer dans Paramètres → Profil après connexion.',
-                    'success',
-                );
             }
 
             if (onRefreshUsers) await onRefreshUsers();
@@ -362,13 +472,13 @@ const CreateUserModal: React.FC<{
 
     if (creationSuccess) {
         return (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+            <div translate="no" className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
                 <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-2xl">
                     <div className="border-b border-slate-200 p-6">
                         <h2 className="text-xl font-bold text-slate-900">Compte créé</h2>
                         <p className="mt-2 text-sm text-slate-600">
-                            Mot de passe provisoire pour <strong className="text-slate-800">{creationSuccess.email}</strong>. Copiez-le
-                            maintenant : il ne sera plus affiché après fermeture.
+                            Mot de passe provisoire pour <strong className="text-slate-800">{creationSuccess.email}</strong>. Transmettez-le à la
+                            personne ; il reste consultable et régénérable depuis la liste tant qu’il n’a pas été modifié.
                         </p>
                         {creationSuccess.flow === 'approval' ? (
                             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
@@ -424,7 +534,7 @@ const CreateUserModal: React.FC<{
     }
 
     return (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+        <div translate="no" className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
             <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-2xl">
                 <form onSubmit={handleSubmit}>
                     <div className="border-b border-slate-200 p-6">
@@ -487,6 +597,7 @@ const CreateUserModal: React.FC<{
                             </p>
                         )}
                         <div
+                            translate="no"
                             className={`rounded-md border p-3 text-xs ${
                                 roleRequiresApprovalWhenCreatedByAdmin(role)
                                     ? 'border-amber-200 bg-amber-50 text-amber-950'
@@ -494,15 +605,15 @@ const CreateUserModal: React.FC<{
                             }`}
                         >
                             {roleRequiresApprovalWhenCreatedByAdmin(role) ? (
-                                <>
+                                <span key="role-approval-required">
                                     <strong>Approbation requise</strong> pour ce rôle : le compte sera créé en attente jusqu’à validation dans
                                     l’onglet approbations.
-                                </>
+                                </span>
                             ) : (
-                                <>
+                                <span key="role-direct-create">
                                     <strong>Création directe</strong> : ce rôle fait partie des profils standard (
                                     {ROLES_ADMIN_CREATE_ACTIVE_DIRECTLY.length} types) — compte actif immédiatement après création.
-                                </>
+                                </span>
                             )}
                         </div>
                         <div>
@@ -545,26 +656,21 @@ const CreateUserModal: React.FC<{
                                 </optgroup>
                                 <optgroup label={t('staff_category')}>
                                     <option value="intern" disabled={!canAssignReservedRoles}>
-                                        {t('intern')}
-                                        {!canAssignReservedRoles ? ' (SENEGEL)' : ''}
+                                        {`${t('intern')}${!canAssignReservedRoles ? ' (SENEGEL)' : ''}`}
                                     </option>
                                     <option value="supervisor" disabled={!canAssignReservedRoles}>
-                                        {t('supervisor')}
-                                        {!canAssignReservedRoles ? ' (SENEGEL)' : ''}
+                                        {`${t('supervisor')}${!canAssignReservedRoles ? ' (SENEGEL)' : ''}`}
                                     </option>
                                     <option value="manager" disabled={!canAssignReservedRoles}>
-                                        {t('manager')}
-                                        {!canAssignReservedRoles ? ' (SENEGEL)' : ''}
+                                        {`${t('manager')}${!canAssignReservedRoles ? ' (SENEGEL)' : ''}`}
                                     </option>
                                     <option value="administrator" disabled={!canAssignReservedRoles}>
-                                        {t('administrator')}
-                                        {!canAssignReservedRoles ? ' (SENEGEL)' : ''}
+                                        {`${t('administrator')}${!canAssignReservedRoles ? ' (SENEGEL)' : ''}`}
                                     </option>
                                 </optgroup>
                                 <optgroup label={t('super_admin_category')}>
                                     <option value="super_administrator" disabled={!canAssignReservedRoles}>
-                                        {t('super_administrator')}
-                                        {!canAssignReservedRoles ? ' (SENEGEL)' : ''}
+                                        {`${t('super_administrator')}${!canAssignReservedRoles ? ' (SENEGEL)' : ''}`}
                                     </option>
                                 </optgroup>
                             </select>
@@ -593,15 +699,43 @@ const CreateUserModal: React.FC<{
                                 </p>
                             )}
                         </div>
-                        <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-700">
-                            <input
-                                type="checkbox"
-                                checked={sendInviteEmail}
-                                onChange={(e) => setSendInviteEmail(e.target.checked)}
-                                className="mt-1"
-                            />
-                            <span>Envoyer l’e-mail pour définir le mot de passe (lien Supabase, même flux que « mot de passe oublié »).</span>
-                        </label>
+                        <div>
+                            <label htmlFor="new-user-department" className="block text-sm font-medium text-slate-700">
+                                Département (pilier){' '}
+                                {departmentChoices.length > 0 ? (
+                                    <span className="text-red-500">*</span>
+                                ) : (
+                                    <span className="text-slate-400">(optionnel)</span>
+                                )}
+                            </label>
+                            <select
+                                id="new-user-department"
+                                value={departmentId}
+                                onChange={(e) => setDepartmentId(e.target.value)}
+                                className="mt-1 w-full rounded-md border border-slate-300 p-2 text-sm"
+                                disabled={departmentChoices.length === 0}
+                            >
+                                <option value="">
+                                    {departmentChoices.length === 0
+                                        ? '— Aucun pilier pour cette organisation —'
+                                        : '— Sélectionner un pilier —'}
+                                </option>
+                                {departmentChoices.map((d) => (
+                                    <option key={d.id} value={d.id}>
+                                        {d.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {departmentChoices.length === 0 && (
+                                <p className="mt-1 text-xs text-slate-500">
+                                    Créez des piliers dans <strong>Paramètres → Départements</strong> pour les affecter à la création.
+                                </p>
+                            )}
+                        </div>
+                        <p className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                            Un <strong>mot de passe provisoire</strong> est généré et affiché une fois après la création. Il reste consultable
+                            et régénérable par un administrateur depuis la liste tant que la personne ne l’a pas modifié dans Paramètres → Profil.
+                        </p>
                     </div>
                     <div className="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 p-4">
                         <button
@@ -666,10 +800,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
     /** Toast de secours si `window.Toast` (global) n’est pas défini */
     const [inlineToast, setInlineToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
     const [createUserOpen, setCreateUserOpen] = useState(false);
+    /** Mot de passe à transmettre (approbation, régénération ou consultation). */
+    const [provisionedCredentials, setProvisionedCredentials] = useState<{ email: string; password: string; title?: string; note?: string } | null>(null);
 
     const canReadModule = canAccessModule('user_management');
     const canWriteModule = hasPermission('user_management', 'write');
     const canDeleteModule = hasPermission('user_management', 'delete');
+
+    /** Organisation de l'administrateur courant : c'est elle qui possède les piliers et où la
+     *  RLS autorise l'affectation. Sert de repli quand le demandeur est rattaché à une
+     *  organisation sans département (ex. doublon historique d'organisation). */
+    const adminOrgId = String(authProfile?.organization_id || currentUser?.organizationId || '');
 
     useEffect(() => {
         setManagedUsers(users);
@@ -680,6 +821,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
         let cancelled = false;
         (async () => {
             const orgIds = new Set<string>();
+            // Toujours inclure l'organisation de l'admin (propriétaire des piliers) comme repli.
+            if (adminOrgId) orgIds.add(adminOrgId);
             managedUsers
                 .filter((u) => u.status === 'pending')
                 .forEach((u) => {
@@ -702,7 +845,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
         return () => {
             cancelled = true;
         };
-    }, [activeTab, managedUsers, authProfile?.organization_id, currentUser?.organizationId]);
+    }, [activeTab, managedUsers, authProfile?.organization_id, currentUser?.organizationId, adminOrgId]);
 
     // Pré-remplir le pilier (département) demandé par le requérant lors d'une demande d'accès,
     // sans écraser un choix déjà effectué par l'administrateur.
@@ -719,7 +862,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
                     const orgKey = String(
                         u.organizationId || authProfile?.organization_id || currentUser?.organizationId || ''
                     );
-                    const deptList = orgKey ? departmentsByOrgId[orgKey] || [] : [];
+                    const pendingOrgList = orgKey ? departmentsByOrgId[orgKey] || [] : [];
+                    const deptList = pendingOrgList.length
+                        ? pendingOrgList
+                        : adminOrgId
+                          ? departmentsByOrgId[adminOrgId] || []
+                          : [];
                     const reqId = String(u.requestedDepartmentId);
                     if (deptList.some((d) => String(d.id) === reqId)) {
                         next[profileId] = reqId;
@@ -728,7 +876,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
                 });
             return changed ? next : prev;
         });
-    }, [activeTab, managedUsers, departmentsByOrgId, authProfile?.organization_id, currentUser?.organizationId]);
+    }, [activeTab, managedUsers, departmentsByOrgId, authProfile?.organization_id, currentUser?.organizationId, adminOrgId]);
 
     // Déterminer si l'assignation des rôles réservés SENEGEL est autorisée
     useEffect(() => {
@@ -783,7 +931,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
                             bio: updatedProfile.bio || '',
                             lastLogin: updatedProfile.last_login || userToUpdate.lastLogin,
                             createdAt: updatedProfile.created_at || userToUpdate.createdAt,
-                            updatedAt: updatedProfile.updated_at || userToUpdate.updatedAt
+                            updatedAt: updatedProfile.updated_at || userToUpdate.updatedAt,
+                            passwordChanged: updatedProfile.password_changed ?? userToUpdate.passwordChanged ?? false,
                         };
                         if (onUpdateUser) onUpdateUser(updatedUser);
                         else setManagedUsers((prev) => prev.map((u) => (String(u.id) === String(updatedUser.id) ? updatedUser : u)));
@@ -975,17 +1124,70 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
         });
     };
 
-    const handleResetPassword = async (u: User) => {
+    // PB4 : génère (régénère) un mot de passe par défaut pour ce compte via l'Edge Function
+    // `admin-reset-password` (service_role). Mécanisme de récupération de mot de passe par l'admin.
+    const handleGeneratePassword = async (u: User) => {
         if (!canWriteModule) return;
-        if (!u.email) return;
+        const profileId = u.profileId ? String(u.profileId) : '';
+        if (!profileId) {
+            showToast('Profil introuvable pour cet utilisateur.', 'error');
+            return;
+        }
+        const confirmed = window.confirm(
+            `Générer un nouveau mot de passe par défaut pour ${u.name || u.email} ?\n\n` +
+            `L’ancien mot de passe sera invalidé. Transmettez ensuite le nouveau mot de passe à la personne, ` +
+            `qui pourra le modifier dans Paramètres → Profil.`,
+        );
+        if (!confirmed) return;
         setResettingUserId(u.id);
         try {
-            const { error } = await AuthService.resetPassword(u.email);
-            if (error) throw error;
-            showToast(`Email de réinitialisation envoyé à ${u.email}`, 'success');
+            const { password, email } = await DataService.regenerateUserPassword(profileId);
+            setManagedUsers((prev) =>
+                prev.map((x) => (String(x.id) === String(u.id) ? { ...x, passwordChanged: false } : x)),
+            );
+            setProvisionedCredentials({
+                email: email || u.email || '',
+                password,
+                title: 'Mot de passe régénéré',
+                note: 'Transmettez ce nouveau mot de passe par défaut. L’utilisateur pourra le modifier dans Paramètres → Profil.',
+            });
+            showToast(`Nouveau mot de passe généré pour ${u.email}`, 'success');
         } catch (e: any) {
-            console.error('Erreur reset password:', e);
-            showToast(e?.message || 'Erreur lors de l’envoi du reset', 'error');
+            console.error('Erreur génération mot de passe:', e);
+            showToast(e?.message || 'Erreur lors de la génération du mot de passe', 'error');
+        } finally {
+            setResettingUserId(null);
+        }
+    };
+
+    // PB4 : consulte le mot de passe par défaut stocké (lecture admin via RLS), tant que
+    // l'utilisateur ne l'a pas personnalisé.
+    const handleViewProvisionalPassword = async (u: User) => {
+        if (!canWriteModule) return;
+        const profileId = u.profileId ? String(u.profileId) : '';
+        if (!profileId) {
+            showToast('Profil introuvable pour cet utilisateur.', 'error');
+            return;
+        }
+        setResettingUserId(u.id);
+        try {
+            const pwd = await DataService.getProvisionalPassword(profileId);
+            if (!pwd) {
+                showToast(
+                    'Aucun mot de passe par défaut disponible (déjà personnalisé par l’utilisateur ou compte non provisionné). Utilisez « Générer ».',
+                    'error',
+                );
+                return;
+            }
+            setProvisionedCredentials({
+                email: u.email || '',
+                password: pwd,
+                title: 'Mot de passe par défaut',
+                note: 'Mot de passe par défaut actuel (non encore modifié par l’utilisateur). Transmettez-le de façon sécurisée.',
+            });
+        } catch (e: any) {
+            console.error('Erreur consultation mot de passe:', e);
+            showToast(e?.message || 'Erreur lors de la consultation du mot de passe', 'error');
         } finally {
             setResettingUserId(null);
         }
@@ -1088,14 +1290,20 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
         const note = (decisionNotes[key] || '').trim();
         setProcessingRequestId(`approve-${key}`);
         try {
-            const { user: updatedUser, departmentAssignmentFailed } = await DataAdapter.approvePendingProfile(
+            const { user: updatedUser, departmentAssignmentFailed, provisionedPassword } = await DataAdapter.approvePendingProfile(
                 profileId,
                 approverProfileId,
                 note,
                 deptId
             );
             if (updatedUser) {
-                onUpdateUser(updatedUser);
+                // En mode embarqué (Paramètres), onUpdateUser n'est pas fourni :
+                // on met à jour la liste locale comme les autres handlers.
+                if (onUpdateUser) {
+                    onUpdateUser(updatedUser);
+                } else {
+                    setManagedUsers((prev) => prev.map((u) => (String(u.id) === String(updatedUser.id) ? updatedUser : u)));
+                }
                 setDecisionNotes(prev => ({ ...prev, [key]: '' }));
                 const who = pendingUser.name || pendingUser.email || 'l’utilisateur';
                 if (departmentAssignmentFailed) {
@@ -1105,6 +1313,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
                     );
                 } else {
                     showToast(`Demande approuvée pour ${who}`, 'success');
+                }
+                // Demande d'accès self-service : un compte auth vient d'être créé avec un
+                // mot de passe par défaut → l'afficher à l'admin pour transmission.
+                if (provisionedPassword) {
+                    setProvisionedCredentials({
+                        email: updatedUser.email || pendingUser.email || '',
+                        password: provisionedPassword,
+                    });
                 }
             }
         } catch (error) {
@@ -1140,7 +1356,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
         try {
             const updatedUser = await DataAdapter.rejectPendingProfile(profileId, approverProfileId, note);
             if (updatedUser) {
-                onUpdateUser(updatedUser);
+                if (onUpdateUser) {
+                    onUpdateUser(updatedUser);
+                } else {
+                    setManagedUsers((prev) => prev.map((u) => (String(u.id) === String(updatedUser.id) ? updatedUser : u)));
+                }
                 setDecisionNotes(prev => ({ ...prev, [key]: '' }));
                 showToast(`Demande rejetée pour ${pendingUser.name || pendingUser.email || 'l’utilisateur'}`, 'success');
             }
@@ -1451,16 +1671,38 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
                                                         <i className={`fas fa-edit ${embedded ? 'mr-1' : 'mr-1.5'}`}></i>
                                                         Rôle
                                                     </button>
+                                                    {user.passwordChanged === false && (
+                                                        <button
+                                                            onClick={() => handleViewProvisionalPassword(user)}
+                                                            disabled={!canWriteModule || !user.profileId || resettingUserId === user.id}
+                                                            className={`font-medium text-amber-700 hover:text-amber-900 rounded transition-colors ${embedded ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-1 text-sm'} ${
+                                                                !canWriteModule || !user.profileId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-amber-50'
+                                                            }`}
+                                                            title="Afficher le mot de passe par défaut (tant qu’il n’a pas été modifié)"
+                                                        >
+                                                            <i className={`fas fa-eye ${embedded ? 'mr-1' : 'mr-1.5'}`}></i>
+                                                            {embedded ? 'Voir' : 'Voir MDP'}
+                                                        </button>
+                                                    )}
+                                                    {user.passwordChanged === true && (
+                                                        <span
+                                                            className={`inline-flex items-center font-medium text-slate-400 ${embedded ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-1 text-sm'}`}
+                                                            title="L’utilisateur a défini son propre mot de passe ; il n’est plus consultable."
+                                                        >
+                                                            <i className={`fas fa-user-lock ${embedded ? 'mr-1' : 'mr-1.5'}`}></i>
+                                                            {embedded ? 'Perso.' : 'MDP perso.'}
+                                                        </span>
+                                                    )}
                                                     <button
-                                                        onClick={() => handleResetPassword(user)}
-                                                        disabled={!canWriteModule || !user.email || resettingUserId === user.id}
+                                                        onClick={() => handleGeneratePassword(user)}
+                                                        disabled={!canWriteModule || !user.profileId || resettingUserId === user.id}
                                                         className={`font-medium text-slate-700 hover:text-slate-900 rounded transition-colors ${embedded ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-1 text-sm'} ${
-                                                            !canWriteModule || !user.email ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100'
+                                                            !canWriteModule || !user.profileId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100'
                                                         }`}
-                                                        title={!user.email ? "Aucun email sur le compte" : "Envoie un email Supabase de réinitialisation"}
+                                                        title={!user.profileId ? 'Profil introuvable' : 'Générer un nouveau mot de passe par défaut (récupération)'}
                                                     >
                                                         <i className={`fas fa-key ${embedded ? 'mr-1' : 'mr-1.5'} ${resettingUserId === user.id ? 'animate-pulse' : ''}`}></i>
-                                                        {embedded ? 'Reset' : 'Reset MDP'}
+                                                        {embedded ? 'Générer' : 'Générer MDP'}
                                                     </button>
                                                     <button 
                                                         onClick={() => handleDelete(user)} 
@@ -1607,11 +1849,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
                                                             currentUser?.organizationId ||
                                                             ''
                                                     );
-                                                    const deptList = orgKey ? departmentsByOrgId[orgKey] || [] : [];
+                                                    const pendingOrgList = orgKey ? departmentsByOrgId[orgKey] || [] : [];
+                                                    // Repli sur les piliers de l'organisation de l'admin lorsque l'organisation
+                                                    // du demandeur n'en possède aucun (le profil sera réaligné à l'activation).
+                                                    const deptList = pendingOrgList.length
+                                                        ? pendingOrgList
+                                                        : adminOrgId
+                                                          ? departmentsByOrgId[adminOrgId] || []
+                                                          : [];
                                                     if (!deptList.length) {
                                                         return (
                                                             <p className="text-xs text-amber-700">
-                                                                Aucun département pour l’organisation de ce compte. Créez-en un dans l’onglet
+                                                                Aucun département disponible. Créez-en un dans l’onglet
                                                                 Départements.
                                                             </p>
                                                         );
@@ -1689,6 +1938,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
                     allUsers={users}
                     currentUserId={currentUser?.id}
                     canAssignReservedRoles={canAssignReservedRoles}
+                    adminOrgId={adminOrgId}
                 />
             )}
 
@@ -1723,9 +1973,63 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
                 currentRole={currentUser?.role}
                 currentOrganizationId={currentUser?.organizationId}
                 canAssignReservedRoles={canAssignReservedRoles}
+                approverProfileId={approverProfileId}
                 onRefreshUsers={onRefreshUsers}
                 onLocalUsersReplace={(list) => setManagedUsers(list)}
             />
+
+            {provisionedCredentials && (
+                <div translate="no" className="fixed inset-0 z-[210] flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl">
+                        <div className="border-b border-slate-200 p-6">
+                            <h2 className="text-lg font-bold text-slate-900">{provisionedCredentials.title || 'Compte activé'}</h2>
+                            <p className="mt-2 text-sm text-slate-600">
+                                {provisionedCredentials.email && (
+                                    <>Compte : <strong className="text-slate-800">{provisionedCredentials.email}</strong>. </>
+                                )}
+                                {provisionedCredentials.note ||
+                                    'Transmettez ce mot de passe par défaut. L’utilisateur pourra le modifier dans Paramètres → Profil.'}
+                            </p>
+                        </div>
+                        <div className="space-y-4 p-6">
+                            <div>
+                                <label className="block text-xs font-medium uppercase tracking-wide text-slate-500">
+                                    Mot de passe par défaut
+                                </label>
+                                <div className="mt-1 flex gap-2">
+                                    <input
+                                        readOnly
+                                        value={provisionedCredentials.password}
+                                        className="flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-sm text-slate-900"
+                                        onFocus={(e) => e.currentTarget.select()}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            navigator.clipboard?.writeText(provisionedCredentials.password).then(
+                                                () => showToast('Mot de passe copié', 'success'),
+                                                () => showToast('Copie impossible', 'error'),
+                                            );
+                                        }}
+                                        className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                                    >
+                                        <i className="fas fa-copy mr-1" aria-hidden /> Copier
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setProvisionedCredentials(null)}
+                                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                >
+                                    Fermer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {inlineToast && (
                 <div

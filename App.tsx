@@ -78,7 +78,6 @@ import { AttendanceStatusDock, MobileAttendanceDock } from './components/hr/work
 import ComptabiliteModule from './components/ComptabiliteModule';
 import Planning from './components/Planning';
 import LoadingOverlay from './components/common/LoadingOverlay';
-import PasswordRecoveryScreen from './components/PasswordRecoveryScreen';
 import QualiteModule from './components/QualiteModule';
 import CollecteModule from './components/CollecteModule';
 import PostesManagement from './components/PostesManagement';
@@ -245,7 +244,6 @@ const App: React.FC = () => {
   const [selectedEmployeeWorkspaceProfileId, setSelectedEmployeeWorkspaceProfileId] = useState<string | null>(
     hrEmployeeProfileIdFromUrlHydrate,
   );
-  const [showNewPasswordModal, setShowNewPasswordModal] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const mainScrollRef = useRef<HTMLElement>(null);
   const automationCycleRunningRef = useRef(false);
@@ -463,17 +461,10 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Password recovery flow (Supabase)
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setShowNewPasswordModal(true);
-      }
-    });
-    return () => { sub.subscription?.unsubscribe(); };
-  }, []);
-
-  // Lien e-mail → `/auth/recovery` : éviter que lastView (ex. dashboard) prenne le dessus au prochain chargement.
+  // PB5 : le flux « lien e-mail de réinitialisation Supabase » est supprimé. La récupération de
+  // mot de passe passe désormais par une demande à l'administrateur (notification) qui génère un
+  // mot de passe générique. On conserve uniquement ce garde-fou : si un ancien lien `/auth/recovery`
+  // est ouvert, on force la vue connexion (aucun écran de saisie de nouveau mot de passe).
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!isAuthRecoveryPathname(window.location.pathname)) return;
@@ -483,33 +474,6 @@ const App: React.FC = () => {
       /* ignore */
     }
   }, []);
-
-  const clearAuthRecoveryUrlIfPresent = useCallback(() => {
-    if (typeof window !== 'undefined' && isAuthRecoveryPathname(window.location.pathname)) {
-      window.history.replaceState({}, '', `${window.location.origin}/`);
-    }
-  }, []);
-
-  const handleRecoveryCompleted = useCallback(() => {
-    setShowNewPasswordModal(false);
-    clearAuthRecoveryUrlIfPresent();
-  }, [clearAuthRecoveryUrlIfPresent]);
-
-  const handleRecoveryAbort = useCallback(async () => {
-    try {
-      await signOut();
-    } catch (e) {
-      console.warn('Déconnexion (recovery) :', e);
-    }
-    setShowNewPasswordModal(false);
-    setCurrentView('login');
-    clearAuthRecoveryUrlIfPresent();
-    try {
-      localStorage.setItem('lastView', 'login');
-    } catch {
-      /* ignore */
-    }
-  }, [signOut, clearAuthRecoveryUrlIfPresent]);
 
   // Handler pour setView qui persiste dans localStorage
   const handleSetView = useCallback((view: string) => {
@@ -3635,11 +3599,6 @@ const App: React.FC = () => {
           handleSetView('messagerie');
         }}
         onOpenTicketIT={() => handleSetView('ticket_it')}
-      />
-      <PasswordRecoveryScreen
-        open={showNewPasswordModal}
-        onCompleted={handleRecoveryCompleted}
-        onAbort={handleRecoveryAbort}
       />
     </div>
     </AppNavigationContext.Provider>

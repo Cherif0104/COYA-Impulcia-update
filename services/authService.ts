@@ -78,25 +78,6 @@ const sanitizeFullName = (fullName?: string | null, email?: string | null) => {
   return email || 'Utilisateur';
 };
 
-/**
- * Mot de passe provisoire pour une demande d'accès (le demandeur ne le connaît pas :
- * après validation, il définit son mot de passe via « Mot de passe oublié » ou « Reset MDP »).
- */
-const generateAccessRequestPassword = (): string => {
-  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const lower = 'abcdefghijkmnpqrstuvwxyz';
-  const digits = '23456789';
-  const symbols = '!@#$%&*?';
-  const all = upper + lower + digits + symbols;
-  const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
-  let pwd = pick(upper) + pick(lower) + pick(digits) + pick(symbols);
-  for (let i = 0; i < 12; i += 1) pwd += pick(all);
-  return pwd
-    .split('')
-    .sort(() => Math.random() - 0.5)
-    .join('');
-};
-
 export interface AuthUser {
   id: string;
   email: string;
@@ -267,8 +248,6 @@ export class AuthService {
         return { user: null, error };
       }
       const organizationId = (data.organization_id && data.organization_id.trim()) || getPrimaryOrganizationId();
-      const posteId =
-        data.poste_id && String(data.poste_id).trim() !== '' ? String(data.poste_id).trim() : null;
       const client = createEphemeralSupabaseClient();
 
       const { data: authData, error: authError } = await client.auth.signUp({
@@ -299,7 +278,6 @@ export class AuthService {
           organization_id: organizationId,
           status: targetStatus,
           pending_role: pendingRole,
-          poste_id: posteId,
         });
 
         if (profileError) {
@@ -316,84 +294,52 @@ export class AuthService {
 
   /**
    * Demande d'accès self-service ("Devenir utilisateur") depuis la page de connexion.
-   * Crée un profil en `status: 'pending'` via un client éphémère (n'affecte pas la session
-   * du navigateur) et stocke le pilier/poste souhaités (best-effort) pour l'approbation admin.
-   * Le rôle effectif reste minimal (DEFAULT_ROLE) jusqu'à validation.
+   *
+   * AUCUN compte auth n'est créé à ce stade : on insère uniquement une ligne `profiles`
+   * en `status: 'pending'` (rôle minimal forcé côté serveur) via la fonction RPC
+   * `public.request_access` (SECURITY DEFINER). Cela évite le blocage RLS côté `anon`
+   * (la table `profiles` n'a pas de policy INSERT pour les visiteurs non authentifiés).
+   *
+   * Le compte auth + un mot de passe par défaut autogénéré sont créés à la VALIDATION par
+   * un administrateur (Edge Function `provision-access-account`).
    */
   static async requestAccess(data: AccessRequestData) {
     try {
-      const storedBaseRole = this.normalizeRoleForStorage(DEFAULT_ROLE);
-      const metadataRole = this.mapStoredRoleToUi(storedBaseRole);
-      const targetStatus: ProfileStatus = 'pending';
+      const fullName = sanitizeFullName(data.full_name, data.email);
+      const email = (data.email || '').trim().toLowerCase();
       const organizationId =
         (data.organization_id && data.organization_id.trim()) || getPrimaryOrganizationId();
-      const fullName = sanitizeFullName(data.full_name, data.email);
-      const password = generateAccessRequestPassword();
-      const client = createEphemeralSupabaseClient();
 
-      const { data: authData, error: authError } = await client.auth.signUp({
-        email: data.email,
-        password,
-        options: {
-          emailRedirectTo: undefined,
-          data: {
-            full_name: fullName,
-            phone_number: data.phone_number,
-            role: metadataRole,
-            requested_role: this.mapStoredRoleToUi(storedBaseRole),
-            status: targetStatus,
-            organization_id: organizationId,
-          },
-        },
+      const { data: rpcData, error: rpcError } = await supabase.rpc('request_access', {
+        p_full_name: fullName,
+        p_email: email,
+        p_phone: data.phone_number?.trim() || null,
+        p_organization_id: organizationId || null,
+        p_requested_department_id: data.requested_department_id || null,
+        p_requested_poste: data.requested_poste?.trim() || null,
       });
 
-      if (authError) throw authError;
-
-      if (authData.user) {
-        const { error: profileError } = await client.from('profiles').insert({
-          user_id: authData.user.id,
-          email: data.email,
-          full_name: fullName,
-          phone_number: data.phone_number,
-          role: storedBaseRole,
-          organization_id: organizationId,
-          status: targetStatus,
-          pending_role: storedBaseRole,
-        });
-
-        if (profileError) {
-          console.error('Erreur création profil (demande accès):', profileError);
-          throw profileError;
+      if (rpcError) {
+        // Traduction des codes métier renvoyés par la fonction SQL.
+        const raw = rpcError.message || '';
+        if (raw.includes('EMAIL_ALREADY_ACTIVE')) {
+          return {
+            user: null,
+            error: new Error(
+              'Un compte existe déjà pour cette adresse e-mail. Essayez de vous connecter ou utilisez « Mot de passe oublié ».',
+            ),
+          };
         }
-
-        // Champs additionnels best-effort (colonnes ajoutées par la migration dédiée).
-        const extras: Record<string, unknown> = {};
-        if (data.requested_department_id) extras.requested_department_id = data.requested_department_id;
-        if (data.requested_poste && data.requested_poste.trim()) {
-          extras.requested_poste = data.requested_poste.trim();
+        if (raw.includes('INVALID_EMAIL')) {
+          return { user: null, error: new Error('Adresse e-mail invalide.') };
         }
-        if (Object.keys(extras).length > 0) {
-          const { error: extraError } = await client
-            .from('profiles')
-            .update(extras)
-            .eq('user_id', authData.user.id);
-          if (extraError) {
-            console.warn(
-              '⚠️ Demande d’accès : champs requested_* non enregistrés (migration à appliquer ?).',
-              extraError.message,
-            );
-          }
-        }
-
-        // Le compte reste en attente : on ne conserve aucune session.
-        try {
-          await client.auth.signOut();
-        } catch {
-          /* ignore */
-        }
+        console.error('Erreur demande d’accès (RPC):', rpcError);
+        throw rpcError;
       }
 
-      return { user: authData.user, error: null };
+      const status = (rpcData as { status?: string } | null)?.status || 'pending';
+      const profileId = (rpcData as { profile_id?: string } | null)?.profile_id || null;
+      return { user: null, error: null, status, profileId };
     } catch (error) {
       console.error('Erreur demande d’accès:', error);
       return { user: null, error };
@@ -646,28 +592,27 @@ export class AuthService {
     }
   }
 
-  // Réinitialiser le mot de passe
-  static async resetPassword(email: string) {
-    try {
-      const { getPasswordRecoveryRedirectUrl } = await import('../utils/authRecoveryUrl');
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getPasswordRecoveryRedirectUrl(),
-      });
-      if (error) throw error;
-      return { error: null };
-    } catch (error) {
-      console.error('Erreur réinitialisation mot de passe:', error);
-      return { error };
-    }
-  }
-
-  // Changer le mot de passe
+  // Changer le mot de passe (utilisateur connecté)
   static async updatePassword(newPassword: string) {
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
       if (error) throw error;
+
+      // PB4 : l'utilisateur a défini son propre mot de passe → marquer `password_changed = true`
+      // et EFFACER le mot de passe provisoire stocké (il ne doit plus être consultable par l'admin).
+      // L'utilisateur n'a pas le droit d'écrire ce champ directement : on passe par la RPC
+      // SECURITY DEFINER `clear_provisional_password`. Non bloquant (le mot de passe est déjà changé).
+      try {
+        const { error: clearError } = await supabase.rpc('clear_provisional_password');
+        if (clearError) {
+          console.warn('Nettoyage du mot de passe provisoire échoué (non bloquant):', clearError.message);
+        }
+      } catch (clearErr) {
+        console.warn('Nettoyage du mot de passe provisoire échoué (non bloquant):', clearErr);
+      }
+
       return { error: null };
     } catch (error) {
       console.error('Erreur changement mot de passe:', error);

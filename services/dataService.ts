@@ -387,6 +387,110 @@ export class DataService {
     }
   }
 
+  /**
+   * Provisionne le compte auth d'une demande d'accès (profil `pending` sans `user_id`) via
+   * l'Edge Function `provision-access-account` (service_role + admin API). Renvoie le mot de
+   * passe par défaut autogénéré (à transmettre à l'utilisateur), ou `null` si aucun compte
+   * n'avait à être créé (flux historique où le compte existait déjà).
+   */
+  static async provisionAccessAccount(
+    profileId: string,
+  ): Promise<{ provisioned: boolean; password?: string; userId?: string }> {
+    const { data, error } = await supabase.functions.invoke('provision-access-account', {
+      body: { profileId },
+    });
+    if (error) {
+      // Tente d'extraire le message d'erreur métier renvoyé par la fonction.
+      let message = error.message || 'Provisioning du compte impossible.';
+      try {
+        const ctx = (error as { context?: Response })?.context;
+        if (ctx && typeof ctx.json === 'function') {
+          const body = await ctx.json();
+          if (body?.error) message = body.error;
+        }
+      } catch {
+        /* ignore */
+      }
+      throw new Error(message);
+    }
+    return {
+      provisioned: Boolean(data?.provisioned),
+      password: data?.password,
+      userId: data?.userId,
+    };
+  }
+
+  /**
+   * PB4 : régénère un mot de passe par défaut pour un compte EXISTANT (récupération de mot de
+   * passe par l'admin) via l'Edge Function `admin-reset-password` (service_role + admin API).
+   * Le nouveau mot de passe est stocké dans `user_provisional_passwords` (consultable par
+   * l'admin tant que l'utilisateur ne l'a pas changé) et renvoyé à l'admin appelant.
+   */
+  static async regenerateUserPassword(
+    profileId: string,
+  ): Promise<{ password: string; email?: string; userId?: string }> {
+    const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+      body: { profileId },
+    });
+    if (error) {
+      let message = error.message || 'Génération du mot de passe impossible.';
+      try {
+        const ctx = (error as { context?: Response })?.context;
+        if (ctx && typeof ctx.json === 'function') {
+          const body = await ctx.json();
+          if (body?.error) message = body.error;
+        }
+      } catch {
+        /* ignore */
+      }
+      throw new Error(message);
+    }
+    if (!data?.password) {
+      throw new Error('Le serveur n’a pas renvoyé de mot de passe.');
+    }
+    return { password: data.password, email: data?.email, userId: data?.userId };
+  }
+
+  /**
+   * PB4 : lit le mot de passe provisoire en clair d'un profil. La table
+   * `user_provisional_passwords` est protégée par RLS (SELECT admin/super-admin uniquement) :
+   * un non-admin reçoit une liste vide. Renvoie `null` si aucun mot de passe n'est stocké
+   * (cas où l'utilisateur a déjà personnalisé son mot de passe, ou compte non provisionné).
+   */
+  static async getProvisionalPassword(profileId: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('user_provisional_passwords')
+      .select('provisional_password')
+      .eq('profile_id', profileId)
+      .maybeSingle();
+    if (error) {
+      console.error('Erreur lecture mot de passe provisoire:', error);
+      return null;
+    }
+    return (data as { provisional_password?: string } | null)?.provisional_password ?? null;
+  }
+
+  /**
+   * PB4 : enregistre (côté admin) un mot de passe provisoire connu — utilisé lorsque le compte
+   * est créé côté client avec un mot de passe choisi (ex. CreateUserModal). L'écriture passe par
+   * la RPC SECURITY DEFINER `store_provisional_password` qui revérifie le rôle admin.
+   */
+  static async storeProvisionalPassword(params: {
+    profileId: string;
+    password: string;
+    userId?: string | null;
+    email?: string | null;
+  }): Promise<{ error: unknown }> {
+    const { error } = await supabase.rpc('store_provisional_password', {
+      p_profile_id: params.profileId,
+      p_password: params.password,
+      p_user_id: params.userId ?? null,
+      p_email: params.email ?? null,
+    });
+    if (error) console.error('Erreur stockage mot de passe provisoire:', error);
+    return { error };
+  }
+
   static async approveProfileRole(params: {
     profileId: string;
     approverId: string;
@@ -394,7 +498,12 @@ export class DataService {
     /** Obligatoire côté UI : rattachement `user_departments` après activation */
     departmentId?: string | null;
   }): Promise<
-    | { data: Record<string, unknown>; error: null; departmentAssignmentFailed?: boolean }
+    | {
+        data: Record<string, unknown>;
+        error: null;
+        departmentAssignmentFailed?: boolean;
+        provisionedPassword?: string;
+      }
     | { data: null; error: unknown }
   > {
     const { profileId, approverId, comment, departmentId } = params;
@@ -408,9 +517,37 @@ export class DataService {
       if (profileError) throw profileError;
       if (!profile) throw new Error('Profil introuvable');
 
+      // Demande d'accès self-service : le compte auth n'existe pas encore (user_id NULL).
+      // On le provisionne (mot de passe par défaut autogénéré) AVANT d'activer le profil.
+      let provisionedPassword: string | undefined;
+      if (!profile.user_id) {
+        const provisioning = await this.provisionAccessAccount(profileId);
+        if (provisioning.provisioned) {
+          provisionedPassword = provisioning.password;
+          (profile as { user_id?: string }).user_id = provisioning.userId;
+        }
+      }
+
       const approvedRole: string = (profile.pending_role as string) || profile.role || 'student';
       const reviewComment = comment?.trim() ? comment.trim() : null;
       const requestedRole = profile.pending_role || approvedRole;
+
+      // Aligne l'organisation du profil sur celle du pilier (département) choisi.
+      // Corrige les profils rattachés à une organisation sans départements (ex. doublon
+      // historique d'organisation) : l'utilisateur rejoint l'organisation propriétaire du
+      // pilier auquel il est affecté, ce qui rend les écrans (départements, droits) cohérents.
+      let alignedOrganizationId: string | null = null;
+      if (departmentId) {
+        const { data: deptRow } = await supabase
+          .from('departments')
+          .select('organization_id')
+          .eq('id', departmentId)
+          .maybeSingle();
+        const deptOrg = (deptRow as { organization_id?: string } | null)?.organization_id || null;
+        if (deptOrg && deptOrg !== (profile as { organization_id?: string }).organization_id) {
+          alignedOrganizationId = deptOrg;
+        }
+      }
 
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
@@ -421,7 +558,8 @@ export class DataService {
           review_comment: reviewComment,
           reviewed_at: new Date().toISOString(),
           reviewed_by: approverId,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          ...(alignedOrganizationId ? { organization_id: alignedOrganizationId } : {})
         })
         .eq('id', profileId)
         .select()
@@ -456,7 +594,8 @@ export class DataService {
       return {
         data: updatedProfile,
         error: null,
-        ...(departmentAssignmentFailed ? { departmentAssignmentFailed: true as const } : {})
+        ...(departmentAssignmentFailed ? { departmentAssignmentFailed: true as const } : {}),
+        ...(provisionedPassword ? { provisionedPassword } : {})
       };
     } catch (error) {
       console.error('❌ Erreur approbation rôle profil:', error);

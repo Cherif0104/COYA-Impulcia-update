@@ -136,6 +136,7 @@ export class DataAdapter {
       organizationId: profile.organization_id ?? null,
       requestedDepartmentId: profile.requested_department_id ?? null,
       requestedPoste: profile.requested_poste ?? null,
+      passwordChanged: profile.password_changed ?? false,
     };
   }
 
@@ -2558,7 +2559,7 @@ CHECK (status IN ('draft', 'sent', 'paid', 'overdue', 'partially_paid') OR statu
     approverId: string,
     comment?: string,
     departmentId?: string | null
-  ): Promise<{ user: User | null; departmentAssignmentFailed: boolean }> {
+  ): Promise<{ user: User | null; departmentAssignmentFailed: boolean; provisionedPassword?: string }> {
     if (!this.useSupabase) return { user: null, departmentAssignmentFailed: false };
     try {
       const result = await DataService.approveProfileRole({ profileId, approverId, comment, departmentId });
@@ -2571,6 +2572,7 @@ CHECK (status IN ('draft', 'sent', 'paid', 'overdue', 'partially_paid') OR statu
       return {
         user: this.mapProfileToUser(result.data),
         departmentAssignmentFailed: Boolean((result as any).departmentAssignmentFailed),
+        provisionedPassword: (result as any).provisionedPassword as string | undefined,
       };
     } catch (error) {
       console.error('❌ Erreur approbation profil:', error);
