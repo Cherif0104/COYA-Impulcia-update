@@ -1,8 +1,9 @@
 import { getDomainEventBus } from './bus';
 import type { DomainEventEnvelope } from './envelope';
 import { applyTaskStatusChangedPolicy } from './policies/projectPolicies';
-import type { TaskStatusChangedPayload } from './events/projectDomainEvents';
-import type { Project, TimeLog, Objective } from '../../types';
+import type { TaskStatusChangedPayload, ProjectNotificationSuggestedPayload } from './events/projectDomainEvents';
+import type { Project, TimeLog, Objective, User } from '../../types';
+import NotificationService from '../notificationService';
 
 let wired = false;
 
@@ -12,6 +13,25 @@ export type OrchestratorContext = {
   timeLogs: TimeLog[];
   objectives: Objective[];
 };
+
+function projectRecipientIds(project: Project): string[] {
+  const ids = new Set<string>();
+  (project.team || []).forEach((member: User) => {
+    if (member?.id != null) ids.add(String(member.id));
+    if ((member as any)?.profileId) ids.add(String((member as any).profileId));
+  });
+  (project.teamMemberIds || []).forEach((id) => {
+    if (id) ids.add(String(id));
+  });
+  if (project.createdById) ids.add(String(project.createdById));
+  return Array.from(ids).filter(Boolean);
+}
+
+function projectNotifSeverityToType(severity: ProjectNotificationSuggestedPayload['severity']): 'info' | 'success' | 'warning' | 'error' {
+  if (severity === 'critical') return 'error';
+  if (severity === 'warning') return 'warning';
+  return 'info';
+}
 
 /**
  * Branche les politiques par défaut sur le bus (idempotent).
@@ -35,6 +55,35 @@ export function ensureDomainOrchestratorWired(): void {
       objectives: ctx.objectives,
     });
     derivedEvents.forEach((e) => bus.publish(e as DomainEventEnvelope));
+  });
+  bus.subscribe('Project.NotificationSuggested', (event) => {
+    const env = event as DomainEventEnvelope<'Project.NotificationSuggested', ProjectNotificationSuggestedPayload>;
+    const ctx = orchestratorContextRef.current;
+    if (!ctx) return;
+    const recipients = projectRecipientIds(ctx.project);
+    if (recipients.length === 0) return;
+    const type = projectNotifSeverityToType(env.payload.severity);
+    const reason = env.payload.reason || 'Alerte projet';
+    const title = ctx.project.title ? `Projet : ${ctx.project.title}` : 'Projet';
+    // Fire and forget; ne bloque pas l’orchestrateur
+    void NotificationService.notifyUsers(
+      recipients,
+      type,
+      'project',
+      'updated',
+      title,
+      reason,
+      {
+        entityType: 'project',
+        entityId: String(env.payload.projectId),
+        entityTitle: ctx.project.title,
+        metadata: {
+          taskId: env.payload.taskId,
+          correlationId: env.correlationId ?? null,
+          eventId: env.eventId,
+        },
+      },
+    );
   });
   wired = true;
 }

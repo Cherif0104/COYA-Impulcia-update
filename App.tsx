@@ -37,6 +37,7 @@ import ProgrammeModule from './components/ProgrammeModule';
 import ProgrammesProjectsShell from './components/ProgrammesProjectsShell';
 import CourseDetail from './components/CourseDetail';
 import CourseManagement from './components/CourseManagement';
+import ProjectRoutes from './components/projects/ProjectRoutes';
 import ApexModuleShell from './components/apex/ApexModuleShell';
 import ApexAccessLanding from './components/apex/ApexAccessLanding';
 import JobManagement from './components/JobManagement';
@@ -3227,111 +3228,32 @@ const App: React.FC = () => {
       case 'dashboard':
         return <Dashboard setView={handleSetView} projects={projects} courses={courses} jobs={jobs} timeLogs={timeLogs} leaveRequests={leaveRequests} invoices={invoices} expenses={expenses} objectives={objectives} canAccessModule={canAccessModule} isDataLoaded={isDataLoaded} />;
       case 'programmes_projects':
-        return (
-          <ProgrammesProjectsShell
-            canAccessProgramme={canAccessModule('programme')}
-            canAccessProjects={canAccessModule('projects')}
-            isFr={language === Language.FR}
-            programmePane={<ProgrammeModule />}
-            projectsPane={
-              <Projects
-                projects={projects}
-                users={users}
-                timeLogs={timeLogs}
-                onUpdateProject={handleUpdateProject}
-                onAddProject={handleAddProject}
-                onDeleteProject={handleDeleteProject}
-                onAddTimeLog={handleAddTimeLog}
-                objectives={objectives}
-                setView={handleSetView}
-                isLoading={isLoading}
-                loadingOperation={loadingOperation}
-                isDataLoaded={isDataLoaded}
-                autoOpenProjectId={
-                  pendingNotification?.entityType === 'project' && pendingNotification.entityId
-                    ? String(pendingNotification.entityId)
-                    : null
-                }
-                onNotificationHandled={handleNotificationHandled}
-                onOpenProjectWorkspace={handleOpenProjectWorkspace}
-              />
-            }
-          />
-        );
       case 'projects':
-        return <Projects 
-                    projects={projects} 
-                    users={users}
-                    timeLogs={timeLogs}
-                    onUpdateProject={handleUpdateProject} 
-                    onAddProject={handleAddProject}
-                    onDeleteProject={handleDeleteProject}
-                    onAddTimeLog={handleAddTimeLog}
-                    objectives={objectives}
-                    setView={handleSetView}
-                    isLoading={isLoading}
-                    loadingOperation={loadingOperation}
-                    isDataLoaded={isDataLoaded}
-                    autoOpenProjectId={
-                      pendingNotification?.entityType === 'project' && pendingNotification.entityId
-                        ? String(pendingNotification.entityId)
-                        : null
-                    }
-                    onNotificationHandled={handleNotificationHandled}
-                    onOpenProjectWorkspace={handleOpenProjectWorkspace}
-                />;
-      case 'project_workspace': {
-        if (!canAccessModule('projects')) {
-          return (
-            <Dashboard
-              setView={handleSetView}
-              projects={projects}
-              courses={courses}
-              jobs={jobs}
-              timeLogs={timeLogs}
-              leaveRequests={leaveRequests}
-              invoices={invoices}
-              expenses={expenses}
-              objectives={objectives}
-              canAccessModule={canAccessModule}
-              isDataLoaded={isDataLoaded}
-            />
-          );
-        }
-        const pid = selectedProjectId;
-        const activeProject = pid ? projects.find((p) => String(p.id) === String(pid)) : undefined;
-        if (!activeProject) {
-          return (
-            <div className="mx-auto max-w-md px-4 py-16 text-center">
-              <p className="text-sm text-slate-600">
-                {language === Language.FR
-                  ? 'Projet introuvable, retiré ou sans accès.'
-                  : 'Project not found, removed, or no access.'}
-              </p>
-              <button
-                type="button"
-                onClick={handleCloseProjectWorkspace}
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0d1b2a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1a3a5c]"
-              >
-                {language === Language.FR ? 'Retour aux projets' : 'Back to projects'}
-              </button>
-            </div>
-          );
-        }
+      case 'project_workspace':
         return (
-          <ProjectObjectWorkspace
-            project={activeProject}
-            onClose={handleCloseProjectWorkspace}
-            onUpdateProject={handleUpdateProject}
-            onDeleteProject={handleDeleteProject}
-            onAddTimeLog={handleAddTimeLog}
+          <ProjectRoutes
+            currentView={currentView as any}
+            language={language}
+            canAccessModule={canAccessModule}
+            projects={projects}
+            users={users}
             timeLogs={timeLogs}
             objectives={objectives}
-            setView={handleSetView}
-            users={users}
+            isLoading={isLoading}
+            loadingOperation={loadingOperation}
+            isDataLoaded={isDataLoaded}
+            pendingNotification={pendingNotification}
+            selectedProjectId={selectedProjectId}
+            handleSetView={handleSetView}
+            handleUpdateProject={handleUpdateProject}
+            handleAddProject={handleAddProject}
+            handleDeleteProject={handleDeleteProject}
+            handleAddTimeLog={handleAddTimeLog}
+            handleNotificationHandled={handleNotificationHandled}
+            handleOpenProjectWorkspace={handleOpenProjectWorkspace}
+            handleCloseProjectWorkspace={handleCloseProjectWorkspace}
           />
         );
-      }
       case 'employee_workspace': {
         if (!canAccessModule('rh')) {
           return (

@@ -134,6 +134,8 @@ export class DataAdapter {
       reviewedAt: profile.reviewed_at || null,
       reviewedBy: profile.reviewed_by || null,
       organizationId: profile.organization_id ?? null,
+      requestedDepartmentId: profile.requested_department_id ?? null,
+      requestedPoste: profile.requested_poste ?? null,
     };
   }
 
@@ -2751,7 +2753,7 @@ CHECK (status IN ('draft', 'sent', 'paid', 'overdue', 'partially_paid') OR statu
       fileSize: row.file_size || 0,
       mimeType: row.mime_type,
       uploadedById: row.uploaded_by_id,
-      createdAt: row.created_at
+      createdAt: row.created_at || row.uploaded_at
     }));
   }
 
@@ -2766,7 +2768,7 @@ CHECK (status IN ('draft', 'sent', 'paid', 'overdue', 'partially_paid') OR statu
       fileSize: data.file_size || 0,
       mimeType: data.mime_type,
       uploadedById: data.uploaded_by_id,
-      createdAt: data.created_at
+      createdAt: data.created_at || data.uploaded_at
     };
   }
 

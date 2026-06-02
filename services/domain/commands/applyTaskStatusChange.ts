@@ -3,6 +3,7 @@ import { getTaskGovernance } from '../../../utils/projectTaskLifecycle';
 import type { DomainEventEnvelope } from '../envelope';
 import { collectTaskStatusDomainEvents } from './taskStatus';
 import { emitTaskCompletedWorkforce } from '../../workforce/taskActivityBridge';
+import { normalizeTaskStatus } from '../../../utils/taskStatus';
 
 export type ApplyTaskStatusChangeContext = {
   organizationId: string | null;
@@ -39,7 +40,8 @@ export function applyTaskStatusChange(
   }
 
   const merged: Record<string, unknown> = { ...updates };
-  if (merged.status === 'Completed') {
+  const nextStatusCanon = updates.status ? normalizeTaskStatus(updates.status as Task['status']) : null;
+  if (nextStatusCanon === 'done') {
     merged.taskGovernance = 'done_proven';
     merged.completedAt = merged.completedAt ?? new Date().toISOString();
     merged.completedById = merged.completedById ?? ctx.actorId;

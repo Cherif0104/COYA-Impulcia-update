@@ -3,6 +3,7 @@
  */
 import { supabase } from './supabaseService';
 import { Task } from '../types';
+import { mapDbStatusToTaskStatus, mapTaskStatusToDb } from '../utils/taskStatus';
 
 function mapDbPriorityToUi(p: string | undefined): Task['priority'] {
   const x = (p || 'medium').toLowerCase();
@@ -18,27 +19,13 @@ function mapUiPriorityToDb(p: Task['priority'] | undefined): string {
   return 'medium';
 }
 
-function mapDbStatusToUi(s: string | undefined): Task['status'] {
-  const x = (s || 'to_do').toLowerCase();
-  if (x === 'in_progress') return 'In Progress';
-  if (x === 'completed') return 'Completed';
-  return 'To Do';
-}
-
-function mapUiStatusToDb(s: Task['status'] | undefined): string {
-  const x = (s || 'To Do').toLowerCase();
-  if (x.includes('progress')) return 'in_progress';
-  if (x.includes('completed')) return 'completed';
-  return 'to_do';
-}
-
 export function mapDbTaskRowToTask(row: any): Task {
   const id = row.client_task_key ? String(row.client_task_key) : String(row.id);
   return {
     id,
     activityId: row.activity_id ? String(row.activity_id) : null,
     text: row.title || '',
-    status: mapDbStatusToUi(row.status),
+    status: mapDbStatusToTaskStatus(row.status),
     priority: mapDbPriorityToUi(row.priority),
     dueDate: row.due_date || undefined,
     estimatedHours: row.estimated_hours != null ? Number(row.estimated_hours) : undefined,
@@ -167,7 +154,7 @@ export async function syncProjectTasksFromUi(
       project_id: projectId,
       client_task_key: clientKey,
       title: t.text || 'Tâche',
-      status: mapUiStatusToDb(t.status),
+      status: mapTaskStatusToDb(t.status),
       priority: mapUiPriorityToDb(t.priority),
       due_date: t.dueDate || null,
       estimated_hours: t.estimatedHours ?? null,

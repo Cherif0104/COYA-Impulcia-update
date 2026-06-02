@@ -78,6 +78,25 @@ const sanitizeFullName = (fullName?: string | null, email?: string | null) => {
   return email || 'Utilisateur';
 };
 
+/**
+ * Mot de passe provisoire pour une demande d'accès (le demandeur ne le connaît pas :
+ * après validation, il définit son mot de passe via « Mot de passe oublié » ou « Reset MDP »).
+ */
+const generateAccessRequestPassword = (): string => {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%&*?';
+  const all = upper + lower + digits + symbols;
+  const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
+  let pwd = pick(upper) + pick(lower) + pick(digits) + pick(symbols);
+  for (let i = 0; i < 12; i += 1) pwd += pick(all);
+  return pwd
+    .split('')
+    .sort(() => Math.random() - 0.5)
+    .join('');
+};
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -111,6 +130,18 @@ export interface SignUpData {
 export interface SignInData {
   email: string;
   password: string;
+}
+
+export interface AccessRequestData {
+  full_name: string;
+  email: string;
+  phone_number?: string;
+  /** Organisation cible (sinon organisation principale par défaut). */
+  organization_id?: string;
+  /** Pilier souhaité = département (`departments.id`) — pré-remplit l’approbation admin. */
+  requested_department_id?: string | null;
+  /** Poste/fonction souhaité (texte libre). */
+  requested_poste?: string | null;
 }
 
 // Service d'authentification Supabase
@@ -279,6 +310,92 @@ export class AuthService {
       return { user: authData.user, error: null };
     } catch (error) {
       console.error('Erreur inscription isolée:', error);
+      return { user: null, error };
+    }
+  }
+
+  /**
+   * Demande d'accès self-service ("Devenir utilisateur") depuis la page de connexion.
+   * Crée un profil en `status: 'pending'` via un client éphémère (n'affecte pas la session
+   * du navigateur) et stocke le pilier/poste souhaités (best-effort) pour l'approbation admin.
+   * Le rôle effectif reste minimal (DEFAULT_ROLE) jusqu'à validation.
+   */
+  static async requestAccess(data: AccessRequestData) {
+    try {
+      const storedBaseRole = this.normalizeRoleForStorage(DEFAULT_ROLE);
+      const metadataRole = this.mapStoredRoleToUi(storedBaseRole);
+      const targetStatus: ProfileStatus = 'pending';
+      const organizationId =
+        (data.organization_id && data.organization_id.trim()) || getPrimaryOrganizationId();
+      const fullName = sanitizeFullName(data.full_name, data.email);
+      const password = generateAccessRequestPassword();
+      const client = createEphemeralSupabaseClient();
+
+      const { data: authData, error: authError } = await client.auth.signUp({
+        email: data.email,
+        password,
+        options: {
+          emailRedirectTo: undefined,
+          data: {
+            full_name: fullName,
+            phone_number: data.phone_number,
+            role: metadataRole,
+            requested_role: this.mapStoredRoleToUi(storedBaseRole),
+            status: targetStatus,
+            organization_id: organizationId,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        const { error: profileError } = await client.from('profiles').insert({
+          user_id: authData.user.id,
+          email: data.email,
+          full_name: fullName,
+          phone_number: data.phone_number,
+          role: storedBaseRole,
+          organization_id: organizationId,
+          status: targetStatus,
+          pending_role: storedBaseRole,
+        });
+
+        if (profileError) {
+          console.error('Erreur création profil (demande accès):', profileError);
+          throw profileError;
+        }
+
+        // Champs additionnels best-effort (colonnes ajoutées par la migration dédiée).
+        const extras: Record<string, unknown> = {};
+        if (data.requested_department_id) extras.requested_department_id = data.requested_department_id;
+        if (data.requested_poste && data.requested_poste.trim()) {
+          extras.requested_poste = data.requested_poste.trim();
+        }
+        if (Object.keys(extras).length > 0) {
+          const { error: extraError } = await client
+            .from('profiles')
+            .update(extras)
+            .eq('user_id', authData.user.id);
+          if (extraError) {
+            console.warn(
+              '⚠️ Demande d’accès : champs requested_* non enregistrés (migration à appliquer ?).',
+              extraError.message,
+            );
+          }
+        }
+
+        // Le compte reste en attente : on ne conserve aucune session.
+        try {
+          await client.auth.signOut();
+        } catch {
+          /* ignore */
+        }
+      }
+
+      return { user: authData.user, error: null };
+    } catch (error) {
+      console.error('Erreur demande d’accès:', error);
       return { user: null, error };
     }
   }

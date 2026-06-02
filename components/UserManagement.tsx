@@ -704,6 +704,32 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
         };
     }, [activeTab, managedUsers, authProfile?.organization_id, currentUser?.organizationId]);
 
+    // Pré-remplir le pilier (département) demandé par le requérant lors d'une demande d'accès,
+    // sans écraser un choix déjà effectué par l'administrateur.
+    useEffect(() => {
+        if (activeTab !== 'approvals') return;
+        setApprovalDepartmentByProfileId((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            managedUsers
+                .filter((u) => u.status === 'pending' && u.requestedDepartmentId && u.profileId)
+                .forEach((u) => {
+                    const profileId = String(u.profileId);
+                    if (next[profileId]) return;
+                    const orgKey = String(
+                        u.organizationId || authProfile?.organization_id || currentUser?.organizationId || ''
+                    );
+                    const deptList = orgKey ? departmentsByOrgId[orgKey] || [] : [];
+                    const reqId = String(u.requestedDepartmentId);
+                    if (deptList.some((d) => String(d.id) === reqId)) {
+                        next[profileId] = reqId;
+                        changed = true;
+                    }
+                });
+            return changed ? next : prev;
+        });
+    }, [activeTab, managedUsers, departmentsByOrgId, authProfile?.organization_id, currentUser?.organizationId]);
+
     // Déterminer si l'assignation des rôles réservés SENEGEL est autorisée
     useEffect(() => {
         const checkPermission = async () => {
@@ -1533,6 +1559,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUser, on
                                                         <i className="far fa-clock mr-1"></i>
                                                         Demande créée le : <strong>{pendingSince}</strong>
                                                     </p>
+                                                    {pendingUser.requestedPoste && (
+                                                        <p className="mt-2">
+                                                            <i className="fas fa-briefcase mr-1 text-blue-500"></i>
+                                                            Poste souhaité : <strong>{pendingUser.requestedPoste}</strong>
+                                                        </p>
+                                                    )}
+                                                    {pendingUser.requestedDepartmentId && (
+                                                        <p className="mt-2 text-emerald-700">
+                                                            <i className="fas fa-sitemap mr-1"></i>
+                                                            Pilier demandé pré-rempli ci-dessous (modifiable).
+                                                        </p>
+                                                    )}
                                                     {pendingUser.reviewComment && (
                                                         <p className="mt-2">
                                                             <i className="fas fa-comment-dots mr-1 text-emerald-500"></i>

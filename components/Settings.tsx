@@ -450,12 +450,13 @@ const Settings: React.FC<SettingsProps> = ({
               className="mt-8 max-w-md space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4"
             >
               <h3 className="text-sm font-semibold text-slate-800">
-                {isFr ? 'Mot de passe du compte' : 'Account password'}
+                <i className="fas fa-lock mr-2 text-emerald-600" aria-hidden />
+                {isFr ? 'Sécurité — mot de passe' : 'Security — password'}
               </h3>
               <p className="text-xs text-slate-600">
                 {isFr
-                  ? 'Après une première connexion avec un mot de passe provisoire, changez-le ici.'
-                  : 'After signing in with a temporary password, change it here.'}
+                  ? 'Changez votre mot de passe à tout moment (par exemple après une première connexion avec un mot de passe provisoire). Au moins 8 caractères.'
+                  : 'Change your password at any time (e.g. after signing in with a temporary password). At least 8 characters.'}
               </p>
               {pwdMsg && (
                 <p className={`text-xs ${pwdMsg.includes('mis à jour') || pwdMsg.toLowerCase().includes('updated') ? 'text-emerald-700' : 'text-red-600'}`}>

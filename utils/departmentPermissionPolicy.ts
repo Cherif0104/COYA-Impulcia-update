@@ -47,8 +47,12 @@ export function buildExplicitReadDenyFromRows(rows: unknown[] | null | undefined
 
 /**
  * Périmètre départements : hors périmètre = refusé.
- * Sur les modules autorisés : lecture minimale si le rôle / la ligne n’impose pas déjà la lecture,
- * sauf refus explicite en base (`can_read` false sur une ligne existante).
+ *
+ * Règle métier : l'appartenance à un département EST autoritaire pour les modules de ce département.
+ * Autrement dit, dès qu'un module fait partie des `moduleSlugs` du/des département(s) de l'utilisateur,
+ * la lecture est accordée — même si une ligne `user_module_permissions` (souvent écrite par défaut pour
+ * les cases décochées) porte `can_read = false`. Cela évite le faux « Accès refusé » pour un membre
+ * d'un département. Le paramètre `explicitReadDeny` ne s'applique donc plus aux modules du département.
  */
 export function applyDepartmentScopeToPermissions(
   effective: Record<ModuleName, PermissionState>,
@@ -70,7 +74,7 @@ export function applyDepartmentScopeToPermissions(
       const p = effective[m];
       if (!p) continue;
       if (p.canRead) continue;
-      if (explicitReadDeny?.has(m)) continue;
+      // L'appartenance au département accorde la lecture, sans tenir compte d'un refus explicite.
       effective[m] = { ...p, canRead: true };
     }
     // Garantir l'accès minimal à la plateforme (si pas explicitement refusé).

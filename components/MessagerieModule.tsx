@@ -1503,6 +1503,7 @@ const MessagerieModule: React.FC = () => {
   // ============================================================
   return (
     <div
+      translate="no"
       className="flex flex-col h-[calc(100dvh-3.5rem)] min-h-[480px] max-h-[calc(100dvh-3.5rem)] text-slate-900"
       style={{ background: '#f8fafc' }}
     >
@@ -1860,7 +1861,7 @@ const MessagerieModule: React.FC = () => {
                           style={{ color: unread ? '#334155' : '#64748b' }}
                         >
                           {snip.senderLabel ? <span className="font-medium">{snip.senderLabel}: </span> : null}
-                          {snip.text}
+                          <span>{snip.text}</span>
                         </span>
                         <div className="flex items-center gap-1 shrink-0">
                           {fav ? (

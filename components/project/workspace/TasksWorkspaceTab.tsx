@@ -1,5 +1,6 @@
 import React from 'react';
 import { getTaskGovernance, isTaskScheduledFrozen as isTaskFrozen } from '../../../utils/projectTaskLifecycle';
+import { normalizeTaskStatus, TASK_STATUS_CANONICAL, taskStatusCanonToLabel } from '../../../utils/taskStatus';
 import type { Project, Task } from '../../../types';
 
 export type TasksWorkspaceTabProps = {
@@ -7,6 +8,8 @@ export type TasksWorkspaceTabProps = {
   canGovernTasks: boolean;
   canManageProject: boolean;
   project: Project;
+  taskReadModel?: { total?: number; in_progress?: number; done?: number; blocked?: number; on_hold?: number; overdue?: number };
+  riskReadModel?: { open?: number; mitigating?: number; closed?: number; high?: number; overdue?: number; rag?: string };
   commitTasks: (tasks: Task[]) => void;
   onOpenAddTaskDrawer: () => void;
   taskViewMode: 'table' | 'kanban';
@@ -43,7 +46,7 @@ export type TasksWorkspaceTabProps = {
   formatDateForInput: (dateString?: string) => string;
   requireJustification: boolean;
   currentUserId?: string | null;
-  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
+  onUpdateTask: (taskId: string, updates: Partial<Task>) => void | Promise<void>;
 };
 
 export const TasksWorkspaceTab: React.FC<TasksWorkspaceTabProps> = ({
@@ -51,6 +54,8 @@ export const TasksWorkspaceTab: React.FC<TasksWorkspaceTabProps> = ({
   canGovernTasks,
   canManageProject,
   project,
+  taskReadModel,
+  riskReadModel,
   commitTasks,
   onOpenAddTaskDrawer,
   taskViewMode,
@@ -90,6 +95,28 @@ export const TasksWorkspaceTab: React.FC<TasksWorkspaceTabProps> = ({
   onUpdateTask,
 }) => (
                                 <div className="space-y-6">
+                                    {(taskReadModel || riskReadModel) && (
+                                        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm text-xs text-slate-700">
+                                            {taskReadModel && (
+                                                <>
+                                                    <span>Tâches: {taskReadModel.total ?? 0}</span>
+                                                    <span>En cours: {taskReadModel.in_progress ?? 0}</span>
+                                                    <span>Bloquées: {taskReadModel.blocked ?? 0}</span>
+                                                    <span>En pause: {taskReadModel.on_hold ?? 0}</span>
+                                                    <span>En retard: {taskReadModel.overdue ?? 0}</span>
+                                                </>
+                                            )}
+                                            {riskReadModel && (
+                                                <>
+                                                    <span>Risques ouverts: {riskReadModel.open ?? 0}</span>
+                                                    <span>En mitigation: {riskReadModel.mitigating ?? 0}</span>
+                                                    <span>Critiques: {riskReadModel.high ?? 0}</span>
+                                                    <span>En retard: {riskReadModel.overdue ?? 0}</span>
+                                                    <span>RAG: {riskReadModel.rag ?? 'ok'}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
                                     {canGovernTasks && (
                                         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                                             <p className="text-sm text-slate-600">
@@ -143,9 +170,11 @@ export const TasksWorkspaceTab: React.FC<TasksWorkspaceTabProps> = ({
                                             />
                                             <select value={taskStatusFilter} onChange={(e) => setTaskStatusFilter(e.target.value as any)} className="px-3 py-2 border border-slate-300 rounded-lg text-sm">
                                                 <option value="all">Tous statuts</option>
-                                                <option value="To Do">À faire</option>
-                                                <option value="In Progress">En cours</option>
-                                                <option value="Completed">Réalisé</option>
+                                                {TASK_STATUS_CANONICAL.map((s) => (
+                                                    <option key={s} value={s}>
+                                                        {taskStatusCanonToLabel(s)}
+                                                    </option>
+                                                ))}
                                             </select>
                                             <select value={taskPriorityFilter} onChange={(e) => setTaskPriorityFilter(e.target.value as any)} className="px-3 py-2 border border-slate-300 rounded-lg text-sm">
                                                 <option value="all">Toutes priorités</option>

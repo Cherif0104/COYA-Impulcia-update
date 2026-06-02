@@ -345,6 +345,28 @@ export class RealtimeService {
     supabase.removeAllChannels();
   }
 
+  // Abonnement read models par project_id
+  static subscribeToProjectReadModel(
+    table: 'project_tasks_read_model' | 'project_risks_read_model',
+    projectId: string,
+    callback: (payload: any) => void,
+  ) {
+    const channel = supabase
+      .channel(`${table}:${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table,
+          filter: `project_id=eq.${projectId}`,
+        },
+        callback,
+      )
+      .subscribe();
+    return channel;
+  }
+
   // Obtenir le statut de la connexion temps réel
   static getConnectionStatus() {
     return supabase.getChannels();

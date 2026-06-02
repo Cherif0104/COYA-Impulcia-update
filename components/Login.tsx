@@ -6,6 +6,7 @@ import logoSenegel from '../assets/logo_senegel.png';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card, CardContent } from './ui/Card';
+import AccessRequestModal from './AccessRequestModal';
 // import SenegelUsersList from './SenegelUsersList'; // supprimé
 
 const IMPULCIA_URL = 'https://impulcia-afrique.com/';
@@ -36,6 +37,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
   const [assistantInitialPrompt, setAssistantInitialPrompt] = useState('');
   // const [showUsersList, setShowUsersList] = useState(false);
   const [isHelpOpen, setHelpOpen] = useState(false);
+  const [accessRequestOpen, setAccessRequestOpen] = useState(false);
   // Organisation (nom) – création si inexistante (si autorisé)
   const [organizationName, setOrganizationName] = useState('SENEGEL');
   const [organizations, setOrganizations] = useState<Array<{ id: string; name: string; slug?: string }>>([]);
@@ -369,6 +371,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
                       <Button type="button" variant="secondary" className="w-full bg-white/90" disabled>
                         Connexion SSO (bientôt)
                       </Button>
+                      <button
+                        type="button"
+                        onClick={() => setAccessRequestOpen(true)}
+                        className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+                      >
+                        <i className="fas fa-user-plus mr-2" aria-hidden />
+                        Devenir utilisateur
+                      </button>
                       <p className="text-center text-[11px] text-white/60 flex items-center justify-center gap-1">
                         <i className="fa fa-lock" aria-hidden />
                         Connexion sécurisée
@@ -384,15 +394,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
                         >
                           Problèmes de connexion
                         </button>
-                        {onSwitchToSignup ? (
-                          <button
-                            type="button"
-                            onClick={onSwitchToSignup}
-                            className="text-xs font-medium text-white/70 hover:text-white underline-offset-4 hover:underline"
-                          >
-                            Créer un compte
-                          </button>
-                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => (onSwitchToSignup ? onSwitchToSignup() : setAccessRequestOpen(true))}
+                          className="text-xs font-medium text-white/70 hover:text-white underline-offset-4 hover:underline"
+                        >
+                          Je n&apos;ai pas encore de compte
+                        </button>
                       </div>
                       <p className="text-center text-xs text-white/55">
                         Solution développée par{' '}
@@ -416,6 +424,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
           initialPrompt={assistantInitialPrompt}
         />
       )}
+
+      <AccessRequestModal
+        isOpen={accessRequestOpen}
+        onClose={() => setAccessRequestOpen(false)}
+        organizations={organizations}
+        organizationsLoading={orgsLoading}
+        defaultOrganizationId={
+          organizations.find((o) => o.name === organizationName)?.id || ''
+        }
+      />
 
       {/* Modal Besoin d'aide : style COYA unifié */}
       {isHelpOpen && (

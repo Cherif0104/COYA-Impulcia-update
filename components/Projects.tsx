@@ -1328,7 +1328,7 @@ const Projects: React.FC<ProjectsProps> = ({
                     users={users}
                     editingProject={editingProject}
                 />,
-                document.body,
+                document.getElementById('coya-modal-root') ?? document.body,
             )}
         </Fragment>
     );

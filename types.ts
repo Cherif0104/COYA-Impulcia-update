@@ -290,6 +290,10 @@ export interface User {
   reviewedBy?: string | null;
   /** Organisation Supabase (`profiles.organization_id`) — utile affectation département à l’approbation */
   organizationId?: string | null;
+  /** Département (pilier) souhaité par le demandeur lors d’une demande d’accès — pré-remplit l’approbation. */
+  requestedDepartmentId?: string | null;
+  /** Poste/fonction souhaité saisi librement lors d’une demande d’accès. */
+  requestedPoste?: string | null;
 }
 
 export type RoleApprovalDecision = 'approved' | 'rejected';
@@ -547,12 +551,27 @@ export interface TaskSwotNotes {
   threats?: string;
 }
 
+export type TaskStatusCanonical =
+  | 'draft'
+  | 'todo'
+  | 'in_progress'
+  | 'in_review'
+  | 'done'
+  | 'blocked'
+  | 'on_hold'
+  | 'cancelled';
+
+export type TaskStatusLegacy = 'To Do' | 'In Progress' | 'Completed';
+
+/** Valeurs supportées : codes canon + anciens libellés UI (compatibilité). */
+export type TaskStatus = TaskStatusCanonical | TaskStatusLegacy;
+
 export interface Task {
   id: string;
   /** Activité de terrain (projet) — lien hiérarchique Programme → Projet → Activité → Tâche */
   activityId?: string | null;
   text: string;
-  status: 'To Do' | 'In Progress' | 'Completed';
+  status: TaskStatus;
   priority: 'High' | 'Medium' | 'Low';
   assignee?: User;
   assigneeIds?: string[];
@@ -608,7 +627,10 @@ export interface ProjectBudgetLine {
   currency?: CurrencyCode;
 }
 
-export type ProjectStatus = 'Not Started' | 'In Progress' | 'Completed' | 'On Hold' | 'Cancelled';
+export type ProjectStatusCanonical = 'proposed' | 'active' | 'closing' | 'closed' | 'cancelled';
+export type ProjectStatusLegacy = 'Not Started' | 'In Progress' | 'Completed' | 'On Hold' | 'Cancelled';
+/** Valeurs supportées : codes canon + anciens libellés UI (compatibilité). */
+export type ProjectStatus = ProjectStatusCanonical | ProjectStatusLegacy;
 
 /** Priorité projet (interface projets) – distincte de la priorité de tâche. */
 export type ProjectPriority = 'low' | 'medium' | 'high' | 'urgent';

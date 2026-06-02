@@ -1,6 +1,28 @@
 import { supabase } from './supabaseService';
 import { ApiHelper, isLikelyPostgrestSelectError } from './apiHelper';
-import { Project, Invoice, Expense, Contact, TimeLog, LeaveRequest, Course, Objective, Document, CurrencyCode, PresenceSession, PresenceStatus, Employee, EmployeeHrAttachment, PresenceStatusEvent, HrAttendancePolicy, HrWorkforceAnomaly, WorkMode, WorkforceTimelineSegmentRow, EmployeeWorkSchedule, Meeting } from '../types';
+import {
+  Project,
+  Invoice,
+  Expense,
+  Contact,
+  TimeLog,
+  LeaveRequest,
+  Course,
+  Objective,
+  Document,
+  CurrencyCode,
+  PresenceSession,
+  PresenceStatus,
+  Employee,
+  EmployeeHrAttachment,
+  PresenceStatusEvent,
+  HrAttendancePolicy,
+  HrWorkforceAnomaly,
+  WorkMode,
+  WorkforceTimelineSegmentRow,
+  EmployeeWorkSchedule,
+  Meeting,
+} from '../types';
 import OrganizationService from './organizationService';
 import DepartmentService from './departmentService';
 import { CurrencyService } from './currencyService';
@@ -905,6 +927,34 @@ export class DataService {
     return await ApiHelper.get(`projects?id=eq.${id}&select=*`);
   }
 
+  static async getProjectTaskReadModel(projectId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('project_tasks_read_model')
+        .select('*')
+        .eq('project_id', projectId)
+        .maybeSingle();
+      if (error) return { data: null, error };
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  static async getProjectRiskReadModel(projectId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('project_risks_read_model')
+        .select('*')
+        .eq('project_id', projectId)
+        .maybeSingle();
+      if (error) return { data: null, error };
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
   static async createProject(project: Partial<Project>) {
     try {
       // Mapper les statuts vers les valeurs valides de la base
@@ -1122,7 +1172,7 @@ export class DataService {
         .from('project_attachments')
         .select('*')
         .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+        .order('uploaded_at', { ascending: false });
       if (error) {
         if (handleOptionalTableError(error, 'project_attachments', 'DataService.getProjectAttachments')) {
           return { data: [], error: null };
@@ -1144,8 +1194,11 @@ export class DataService {
       if (!organizationId) throw new Error('Organization not found');
       const { data: { user } } = await supabase.auth.getUser();
       const bucket = 'project-attachments';
-      const ext = file.name.split('.').pop() || 'bin';
-      const path = `${organizationId}/${projectId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const randomSuffix =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+      const path = `${organizationId}/${projectId}/${randomSuffix}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
 
       const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
         cacheControl: '3600',

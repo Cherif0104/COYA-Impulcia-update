@@ -1,8 +1,9 @@
 import type { Task } from '../types';
+import { normalizeTaskStatus } from './taskStatus';
 
 export function getTaskGovernance(task: Task): NonNullable<Task['taskGovernance']> {
   if (task.taskGovernance) return task.taskGovernance;
-  if (task.status === 'Completed') return 'done_proven';
+  if (normalizeTaskStatus(task.status) === 'done') return 'done_proven';
   return 'open';
 }
 
@@ -14,7 +15,7 @@ export function applyProjectTasksAutoClose(tasks: Task[]): Task[] {
     if (g === 'not_realized' || g === 'closed_out') return t;
     const end = t.periodEnd || t.dueDate;
     if (!end) return t;
-    if (today > String(end).slice(0, 10) && t.status !== 'Completed') {
+    if (today > String(end).slice(0, 10) && normalizeTaskStatus(t.status) !== 'done') {
       return {
         ...t,
         taskGovernance: 'not_realized' as const,
@@ -27,7 +28,7 @@ export function applyProjectTasksAutoClose(tasks: Task[]): Task[] {
 }
 
 export function isTaskScheduledFrozen(task: Task): boolean {
-  if (task.status === 'Completed') return false;
+  if (normalizeTaskStatus(task.status) === 'done') return false;
   if (task.isFrozen) return true;
   if (!task.scheduledDate) return false;
   const scheduled = new Date(task.scheduledDate);

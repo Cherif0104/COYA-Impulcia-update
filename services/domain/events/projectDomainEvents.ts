@@ -3,18 +3,17 @@
  * Les types UI (Task.status) sont mappés en codes canon pour la traçabilité.
  */
 
-import type { Task } from '../../../types';
+import type { TaskStatusCanonical, Task } from '../../../types';
+import { normalizeTaskStatus } from '../../../utils/taskStatus';
 
-/** Codes état tâche canon (doc domains/projects/states.md) — sous-ensemble couvert par l’UI actuelle */
-export type TaskStatusCanon = 'todo' | 'in_progress' | 'done';
+/** Codes état tâche canon (doc domains/projects/states.md) */
+export type TaskStatusCanon = TaskStatusCanonical;
 
 export function taskUiStatusToCanon(status: Task['status']): TaskStatusCanon {
-  if (status === 'Completed') return 'done';
-  if (status === 'In Progress') return 'in_progress';
-  return 'todo';
+  return normalizeTaskStatus(status);
 }
 
-export type ProjectDomainEventType = 'Task.StatusChanged' | 'Project.HealthRecalculated';
+export type ProjectDomainEventType = 'Task.StatusChanged' | 'Project.HealthRecalculated' | 'Project.NotificationSuggested';
 
 export type TaskStatusChangedPayload = {
   projectId: string;
@@ -30,6 +29,14 @@ export type ProjectHealthRecalculatedPayload = {
   reason?: string;
 };
 
+export type ProjectNotificationSuggestedPayload = {
+  projectId: string;
+  taskId?: string;
+  severity: 'info' | 'warning' | 'critical';
+  reason: string;
+};
+
 export type ProjectDomainEvent =
   | { type: 'Task.StatusChanged'; payload: TaskStatusChangedPayload }
-  | { type: 'Project.HealthRecalculated'; payload: ProjectHealthRecalculatedPayload };
+  | { type: 'Project.HealthRecalculated'; payload: ProjectHealthRecalculatedPayload }
+  | { type: 'Project.NotificationSuggested'; payload: ProjectNotificationSuggestedPayload };

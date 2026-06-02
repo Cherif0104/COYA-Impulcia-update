@@ -6,6 +6,9 @@ import { NAV_SESSION_OPEN_PROGRAMME_ID, NAV_SESSION_PROGRAMMES_PROJECTS_TAB, NAV
 import { applyProjectTasksAutoClose, getTaskGovernance, isTaskScheduledFrozen as isTaskFrozen } from '../utils/projectTaskLifecycle';
 import { buildProjectCockpitReadModel } from '../services/projectCockpitReadModel';
 import { applyTaskStatusChange, dispatchProjectDomainEvents } from '../services/domain';
+import { sendProjectCommand } from '../services/domain/bff/projectCommandClient';
+import { normalizeTaskStatus, taskStatusCanonToLabel, TASK_STATUS_CANONICAL } from '../utils/taskStatus';
+import RealtimeService from '../services/realtimeService';
 import {
     ObjectWorkspaceFloorplan,
     KPIStrip,
@@ -24,6 +27,7 @@ import ProjectCreatePage from './ProjectCreatePage';
 import ObjectivesBlock from './ObjectivesBlock';
 import ConfirmationModal from './common/ConfirmationModal';
 import DataAdapter from '../services/dataAdapter';
+import DataService from '../services/dataService';
 import { syncProjectTasksToPlanningSlots } from '../services/planning/projectTaskPlanningSync';
 import { ProjectWorkspaceProvider, type ProjectWorkspaceContextValue } from '../contexts/project-workspace';
 import { HistoryWorkspaceTab } from './project/workspace/HistoryWorkspaceTab';
@@ -73,6 +77,8 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
     const { user: currentUser } = useAuth();
     const { hasPermission } = useModulePermissions();
     const [currentProject, setCurrentProject] = useState(project);
+    const [taskReadModel, setTaskReadModel] = useState<any | null>(null);
+    const [riskReadModel, setRiskReadModel] = useState<any | null>(null);
     /** Évite les boucles onUpdateProject quand la clôture auto des tâches ne se stabilise pas côté parent. */
     const lastAutoCloseEmittedSigRef = useRef<string | null>(null);
     const [workspaceTab, setWorkspaceTab] = useState<ProjectWorkspaceTab>('cockpit');
@@ -215,9 +221,20 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
         }
     }, [project, onUpdateProject]);
 
+    const refreshReadModels = useCallback(async () => {
+        if (!currentProject?.id) return;
+        const [taskRm, riskRm] = await Promise.all([
+            DataService.getProjectTaskReadModel(String(currentProject.id)).catch(() => ({ data: null })),
+            DataService.getProjectRiskReadModel(String(currentProject.id)).catch(() => ({ data: null })),
+        ]);
+        if (taskRm?.data) setTaskReadModel(taskRm.data);
+        if (riskRm?.data) setRiskReadModel(riskRm.data);
+    }, [currentProject?.id]);
+
     useEffect(() => {
         void loadProjectReports();
-    }, [loadProjectReports]);
+        void refreshReadModels();
+    }, [loadProjectReports, refreshReadModels]);
 
     const tasksPlanningSyncSig = useMemo(
         () => `${currentProject.id}|${JSON.stringify(currentProject.tasks ?? [])}`,
@@ -227,6 +244,28 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
     const flushPlanningSlotSync = useCallback((project: Project) => {
         void syncProjectTasksToPlanningSlots(project).catch(() => {});
     }, []);
+
+    useEffect(() => {
+        if (!currentProject?.id) return;
+        const taskChannel = RealtimeService.subscribeToProjectReadModel(
+            'project_tasks_read_model',
+            String(currentProject.id),
+            () => {
+                void refreshReadModels();
+            },
+        );
+        const riskChannel = RealtimeService.subscribeToProjectReadModel(
+            'project_risks_read_model',
+            String(currentProject.id),
+            () => {
+                void refreshReadModels();
+            },
+        );
+        return () => {
+            if (taskChannel) RealtimeService.unsubscribe(taskChannel);
+            if (riskChannel) RealtimeService.unsubscribe(riskChannel);
+        };
+    }, [currentProject?.id, refreshReadModels]);
 
     useEffect(() => {
         const t = window.setTimeout(() => {
@@ -363,7 +402,68 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
         return result;
     };
 
-    const handleUpdateTask = (taskId: string, updates: any) => {
+    const handleUpdateTask = async (taskId: string, updates: any) => {
+        // BFF/Edge : commande côté serveur pour mutation persistée + audit
+        const edgeOpts = {
+            organizationId: currentUser?.organizationId ?? null,
+            actorId: currentUser?.id != null ? String(currentUser.id) : null,
+        };
+        if (updates.status !== undefined) {
+            const cmdId = crypto.randomUUID();
+            const cmd = {
+                type: 'change_task_status' as const,
+                command_id: cmdId,
+                projectId: String(currentProject.id),
+                taskId: String(taskId),
+                status: updates.status,
+            };
+            const resp = await sendProjectCommand(cmd, edgeOpts);
+            if (!resp.ok) {
+                alert(`Commande statut échouée (${resp.code || ''}) : ${resp.error}`);
+                return;
+            }
+            // observabilité minimale côté client
+            console.info('[project-command]', { commandId: resp.commandId, correlationId: resp.correlationId, eventIds: resp.eventIds });
+        }
+
+        if (updates.assignee !== undefined || updates.assigneeIds !== undefined) {
+            const assigneeIds = Array.isArray(updates.assigneeIds)
+                ? updates.assigneeIds.map(String)
+                : updates.assignee?.id
+                    ? [String(updates.assignee.id)]
+                    : [];
+            const cmdId = crypto.randomUUID();
+            const cmd = {
+                type: 'assign_task' as const,
+                command_id: cmdId,
+                projectId: String(currentProject.id),
+                taskId: String(taskId),
+                assigneeIds,
+            };
+            const resp = await sendProjectCommand(cmd, edgeOpts);
+            if (!resp.ok) {
+                alert(`Assignation échouée (${resp.code || ''}) : ${resp.error}`);
+                return;
+            }
+            console.info('[project-command]', { commandId: resp.commandId, correlationId: resp.correlationId, eventIds: resp.eventIds });
+        }
+
+        if (updates.dependsOnTaskId) {
+            const cmdId = crypto.randomUUID();
+            const cmd = {
+                type: 'add_dependency' as const,
+                command_id: cmdId,
+                projectId: String(currentProject.id),
+                taskId: String(taskId),
+                dependsOnTaskId: String(updates.dependsOnTaskId),
+            };
+            const resp = await sendProjectCommand(cmd, edgeOpts);
+            if (!resp.ok) {
+                alert(`Dépendance échouée (${resp.code || ''}) : ${resp.error}`);
+                return;
+            }
+            console.info('[project-command]', { commandId: resp.commandId, correlationId: resp.correlationId, eventIds: resp.eventIds });
+        }
         const result = applyTaskStatusChange(currentProject, taskId, updates, {
             organizationId: currentUser?.organizationId ?? null,
             actorId: currentUser?.id != null ? String(currentUser.id) : null,
@@ -385,9 +485,10 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
                 objectives,
             });
         }
+        void refreshReadModels();
     };
 
-    const handleAddTask = () => {
+    const handleAddTask = async () => {
         if (!canGovernTasks) {
             alert('Seuls les rôles autorisés (manager, superviseur, formateur, administrateur…) peuvent créer des tâches.');
             return;
@@ -404,6 +505,24 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
         }
 
         const periodEnd = newTaskPeriodEnd.trim() || newTaskDueDate.trim();
+        // Commande BFF/Edge
+        const cmdId = crypto.randomUUID();
+        const cmd = {
+            type: 'create_task' as const,
+            command_id: cmdId,
+            projectId: String(currentProject.id),
+            title,
+            assigneeIds: newTaskAssignee ? [newTaskAssignee] : [],
+            dueDate: newTaskDueDate || periodEnd || null,
+        };
+        const resp = await sendProjectCommand(cmd, {
+            organizationId: currentUser?.organizationId ?? null,
+            actorId: currentUser?.id != null ? String(currentUser.id) : null,
+        });
+        if (!resp.ok) {
+            alert(`Création tâche via BFF échouée (${resp.code || ''}) : ${resp.error}`);
+            return;
+        }
         const newTask: Task = {
             id: `task-${Date.now()}`,
             text: title,
@@ -443,6 +562,7 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
         setNewTaskScheduledDate('');
         setNewTaskScheduledTime('');
         setNewTaskScheduledDuration(60);
+        void refreshReadModels();
     };
 
     const handleDeleteTask = (taskId: string) => {
@@ -495,7 +615,8 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
             setKanbanDraggingTaskId(null);
             return;
         }
-        if (targetStatus === 'Completed' && requireJustification) {
+        const targetCanon = normalizeTaskStatus(targetStatus);
+        if (targetCanon === 'done' && requireJustification) {
             const hasJustif = (draggedTask.justificationAttachmentIds?.length ?? 0) > 0;
             if (!hasJustif) {
                 alert('Justificatif obligatoire : liez au moins une pièce jointe avant de marquer comme Réalisé.');
@@ -503,8 +624,8 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
                 return;
             }
         }
-        const updates: Partial<Task> = { status: targetStatus };
-        if (targetStatus === 'Completed') {
+        const updates: Partial<Task> = { status: targetCanon };
+        if (targetCanon === 'done') {
             updates.completedAt = new Date().toISOString();
             updates.completedById = currentUser?.id != null ? String(currentUser.id) : undefined;
             updates.isFrozen = false;
@@ -1120,12 +1241,24 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
 
     const filteredTasks = useMemo(() => {
         const rankPriority = (priority: Task['priority']) => (priority === 'High' ? 0 : priority === 'Medium' ? 1 : 2);
-        const rankStatus = (status: Task['status']) => (status === 'To Do' ? 0 : status === 'In Progress' ? 1 : 2);
+        const statusOrder: Record<string, number> = {
+            draft: 0,
+            todo: 1,
+            in_progress: 2,
+            in_review: 3,
+            blocked: 4,
+            on_hold: 5,
+            done: 6,
+            cancelled: 7,
+        };
+        const rankStatus = (status: Task['status']) => statusOrder[normalizeTaskStatus(status)] ?? 99;
         const list = (currentProject.tasks || []).filter((task) => {
             const q = taskSearch.trim().toLowerCase();
             const taskAssigneeId = task.assignee?.id ? String(task.assignee.id) : '';
             const matchesSearch = !q || task.text.toLowerCase().includes(q);
-            const matchesStatus = taskStatusFilter === 'all' || task.status === taskStatusFilter;
+            const matchesStatus =
+                taskStatusFilter === 'all' ||
+                normalizeTaskStatus(task.status) === normalizeTaskStatus(taskStatusFilter as Task['status']);
             const matchesPriority = taskPriorityFilter === 'all' || task.priority === taskPriorityFilter;
             const matchesAssignee =
                 taskAssigneeFilter === 'all' ||
@@ -1147,11 +1280,11 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
     const selectedFilteredCount = filteredTaskIds.filter((id) => selectedTaskIds.includes(id)).length;
     const allFilteredSelected = filteredTaskIds.length > 0 && selectedFilteredCount === filteredTaskIds.length;
     const selectedTaskCount = selectedTaskIds.length;
-    const kanbanColumns: Array<{ key: Task['status']; label: string }> = [
-        { key: 'To Do', label: 'À faire' },
-        { key: 'In Progress', label: 'En cours' },
-        { key: 'Completed', label: 'Réalisé' },
-    ];
+    const kanbanStatuses: Task['status'][] = ['todo', 'in_progress', 'in_review', 'blocked', 'on_hold', 'done'];
+    const kanbanColumns: Array<{ key: Task['status']; label: string }> = kanbanStatuses.map((s) => ({
+        key: s,
+        label: taskStatusCanonToLabel(normalizeTaskStatus(s)),
+    }));
     const unresolvedHighRisks = (currentProject.risks || []).filter((risk) => risk.likelihood === 'High' || risk.impact === 'High').length;
     const governanceChecklist = [
         { id: 'tasks', label: 'Toutes les tâches sont terminées', done: cockpit.totalTasks > 0 && cockpit.completedTasks === cockpit.totalTasks },
@@ -2196,6 +2329,19 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
                                     canGovernTasks={canGovernTasks}
                                     canManageProject={canManageProject}
                                     project={currentProject}
+                                    taskReadModel={taskReadModel || undefined}
+                                    riskReadModel={
+                                        riskReadModel
+                                            ? {
+                                                  open: riskReadModel.open_risks ?? riskReadModel.open ?? riskReadModel.total_risks,
+                                                  mitigating: riskReadModel.mitigating_risks ?? riskReadModel.mitigating,
+                                                  closed: riskReadModel.closed_risks ?? riskReadModel.closed,
+                                                  high: riskReadModel.high_risks ?? riskReadModel.high,
+                                                  overdue: riskReadModel.overdue_risks ?? 0,
+                                                  rag: riskReadModel.rag_status ?? 'ok',
+                                              }
+                                            : undefined
+                                    }
                                     commitTasks={commitProjectTasks}
                                     onOpenAddTaskDrawer={() => setIsAddTaskDrawerOpen(true)}
                                     taskViewMode={taskViewMode}
@@ -3326,6 +3472,8 @@ const ProjectObjectWorkspace: React.FC<ProjectObjectWorkspaceProps> = ({
                     onClose={() => setProjectMetaWizardOpen(false)}
                     onSave={async (data) => {
                         await Promise.resolve(onUpdateProject(data as Project));
+                        // rafraîchir les read models après mise à jour du projet
+                        void refreshReadModels();
                     }}
                 />
             )}

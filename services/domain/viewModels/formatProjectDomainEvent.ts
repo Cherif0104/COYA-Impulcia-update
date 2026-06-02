@@ -3,9 +3,14 @@ import type { TaskStatusChangedPayload } from '../events/projectDomainEvents';
 
 function canonToLabel(code: string, lang: 'fr' | 'en'): string {
   const m: Record<string, { fr: string; en: string }> = {
+    draft: { fr: 'Brouillon', en: 'Draft' },
     todo: { fr: 'À faire', en: 'To do' },
     in_progress: { fr: 'En cours', en: 'In progress' },
+    in_review: { fr: 'En validation', en: 'In review' },
     done: { fr: 'Réalisé', en: 'Completed' },
+    blocked: { fr: 'Bloqué', en: 'Blocked' },
+    on_hold: { fr: 'En pause', en: 'On hold' },
+    cancelled: { fr: 'Annulé', en: 'Cancelled' },
   };
   return m[code]?.[lang] ?? code;
 }
@@ -52,6 +57,24 @@ export function formatProjectDomainEventViewModel(row: DomainEventRow, lang: 'fr
     return {
       primary: 'Project health recalculated (cockpit)',
       secondary: reason ? `Reason: ${reason}` : undefined,
+      isFollowUp,
+    };
+  }
+
+  if (row.event_type === 'Project.NotificationSuggested') {
+    const payload = row.payload as { reason?: string; severity?: string; taskId?: string };
+    const titleFr = payload.taskId ? `Alerte tâche ${payload.taskId}` : 'Alerte projet';
+    const titleEn = payload.taskId ? `Task alert ${payload.taskId}` : 'Project alert';
+    if (lang === 'fr') {
+      return {
+        primary: `${titleFr} (${payload.severity || 'info'})`,
+        secondary: payload.reason,
+        isFollowUp,
+      };
+    }
+    return {
+      primary: `${titleEn} (${payload.severity || 'info'})`,
+      secondary: payload.reason,
       isFollowUp,
     };
   }

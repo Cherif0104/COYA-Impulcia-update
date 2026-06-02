@@ -5,16 +5,8 @@ import {
   type ProjectDomainEvent,
   type TaskStatusChangedPayload,
 } from '../events/projectDomainEvents';
-
-const ALLOWED: Record<Task['status'], Task['status'][]> = {
-  'To Do': ['In Progress', 'Completed'],
-  'In Progress': ['To Do', 'Completed'],
-  'Completed': ['To Do', 'In Progress'],
-};
-
-export function isAllowedTaskStatusTransition(from: Task['status'], to: Task['status']): boolean {
-  return (ALLOWED[from] || []).includes(to);
-}
+import { isAllowedTaskStatusTransition } from '../../../utils/taskStatus';
+export { isAllowedTaskStatusTransition } from '../../../utils/taskStatus';
 
 export type CollectTaskStatusEventsInput = {
   organizationId: string | null;
@@ -35,7 +27,9 @@ export type CollectTaskStatusEventsResult =
 export function collectTaskStatusDomainEvents(input: CollectTaskStatusEventsInput): CollectTaskStatusEventsResult {
   const prev = input.previous.status;
   const next = input.task.status;
-  if (prev === next) {
+  const prevCanon = taskUiStatusToCanon(prev);
+  const nextCanon = taskUiStatusToCanon(next);
+  if (prevCanon === nextCanon) {
     return { ok: true, events: [] };
   }
   if (!isAllowedTaskStatusTransition(prev, next)) {

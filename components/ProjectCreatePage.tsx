@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import React, { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { Project, User } from '../types';
 import TeamSelector from './common/TeamSelector';
 import OrganizationService from '../services/organizationService';
@@ -257,10 +256,6 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
             submitInFlightRef.current = false;
         }
         if (saveSucceeded) {
-            // Commit synchrone : le parent ne ferme plus le portail ; on repasse le bouton submit hors « chargement » avant onClose (log H_ERR removeChild sinon).
-            flushSync(() => {
-                setIsLoading(false);
-            });
             // #region agent log
             postCoyaDebugIngest({
                     sessionId: '5fe008',
@@ -271,7 +266,14 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
                     timestamp: Date.now(),
                 });
             // #endregion
-            onClose();
+            // Ne pas appeler setIsLoading(false) puis onClose() dans le même tick : React met à jour
+            // les nœuds texte du bouton submit pendant que le portail se démonte → NotFoundError removeChild.
+            // Déferrer la fermeture après peinture + tick suivant (évite conflit portail / submit / flushSync inter-racines).
+            window.requestAnimationFrame(() => {
+                window.setTimeout(() => {
+                    onClose();
+                }, 0);
+            });
         } else {
             setIsLoading(false);
         }
@@ -295,12 +297,12 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
 
     const goPrev = () => {
         if (!canGoPrev) return;
-        setStep(steps[stepIndex - 1].id);
+        startTransition(() => setStep(steps[stepIndex - 1].id));
     };
     const goNext = () => {
         if (!canGoNext) return;
         if (!validateCompletedStep(step)) return;
-        setStep(steps[stepIndex + 1].id);
+        startTransition(() => setStep(steps[stepIndex + 1].id));
     };
 
     return (
@@ -372,8 +374,12 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
                                 </div>
                             </div>
 
-                            {step === 'basics' && (
-                                <div key="step-basics" className="grid grid-cols-1 gap-6">
+                            {/* Étapes toujours montées (display) : évite démontages massifs + removeChild sous React 19 / portail. */}
+                            <div
+                                className={step === 'basics' ? 'grid grid-cols-1 gap-6' : 'hidden'}
+                                data-wizard-step="basics"
+                                inert={step !== 'basics' ? true : undefined}
+                            >
                                     <div>
                                         <label htmlFor="title" className="block text-sm font-medium text-slate-700 mb-2">
                                             Titre du projet *
@@ -424,10 +430,12 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
                                         )}
                                     </div>
                                 </div>
-                            )}
 
-                            {step === 'planning' && (
-                                <div key="step-planning" className="grid grid-cols-1 gap-6">
+                            <div
+                                className={step === 'planning' ? 'grid grid-cols-1 gap-6' : 'hidden'}
+                                data-wizard-step="planning"
+                                inert={step !== 'planning' ? true : undefined}
+                            >
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div>
                                             <label htmlFor="status" className="block text-sm font-medium text-slate-700 mb-2">
@@ -500,10 +508,12 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
                                         </p>
                                     </div>
                                 </div>
-                            )}
 
-                            {step === 'team' && (
-                                <div key="step-team">
+                            <div
+                                className={step === 'team' ? 'block' : 'hidden'}
+                                data-wizard-step="team"
+                                inert={step !== 'team' ? true : undefined}
+                            >
                                     <div className={`border rounded-xl p-6 ${
                                         errors.team ? 'border-red-500' : 'border-gray-300'
                                     }`}>
@@ -517,10 +527,12 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
                                         )}
                                     </div>
                                 </div>
-                            )}
 
-                            {step === 'review' && (
-                                <div key="step-review" className="space-y-4">
+                            <div
+                                className={step === 'review' ? 'space-y-4' : 'hidden'}
+                                data-wizard-step="review"
+                                inert={step !== 'review' ? true : undefined}
+                            >
                                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                                         <p className="text-xs font-semibold text-slate-500">Résumé</p>
                                         <p className="mt-1 text-lg font-semibold text-slate-900">{formData.title || '—'}</p>
@@ -548,7 +560,6 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
                                         </div>
                                     )}
                                 </div>
-                            )}
 
                             {/* Actions */}
                             <div className="flex justify-end space-x-4 pt-6 border-t border-slate-200">
@@ -566,37 +577,54 @@ const ProjectCreatePage: React.FC<ProjectCreatePageProps> = ({
                                             <span className="mr-2 opacity-80" aria-hidden>←</span>
                                             Précédent
                                         </button>
-                                        {step !== 'review' ? (
-                                            <button
-                                                type="button"
-                                                data-testid="project-wizard-next"
-                                                onClick={goNext}
-                                                disabled={!canGoNext || isLoading}
-                                                className="btn-3d-primary disabled:opacity-50"
-                                            >
-                                                Suivant
-                                                <span className="ml-2 opacity-80" aria-hidden>→</span>
-                                            </button>
-                                        ) : (
-                                            <button type="submit" data-testid="project-wizard-submit" disabled={isLoading} className="btn-3d-primary disabled:opacity-50">
-                                                {isLoading ? (
-                                                    <span className="inline-flex items-center gap-2">
-                                                        <span
-                                                            className="inline-block size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent opacity-90"
-                                                            aria-hidden
-                                                        />
-                                                        {editingProject ? 'Modification...' : 'Création...'}
+                                        {/*
+                                          Même <button> + sous-arbre stable : deux panneaux (navigation / soumission)
+                                          basculent en display pour éviter removeChild sur nœuds texte (React 19).
+                                        */}
+                                        <button
+                                            type={step === 'review' ? 'submit' : 'button'}
+                                            data-testid={step === 'review' ? 'project-wizard-submit' : 'project-wizard-next'}
+                                            onClick={step === 'review' ? undefined : goNext}
+                                            disabled={step === 'review' ? isLoading : !canGoNext || isLoading}
+                                            className="btn-3d-primary disabled:opacity-50"
+                                        >
+                                            <span className="inline-flex min-h-[1.5rem] items-center justify-center gap-2">
+                                                <span
+                                                    className={
+                                                        step === 'review' ? 'hidden' : 'inline-flex items-center gap-0'
+                                                    }
+                                                >
+                                                    Suivant
+                                                    <span className="ml-2 opacity-80" aria-hidden>
+                                                        →
                                                     </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-2">
-                                                        <span className="opacity-90" aria-hidden>
-                                                            ✓
-                                                        </span>
-                                                        {editingProject ? 'Enregistrer' : 'Créer le projet'}
+                                                </span>
+                                                <span
+                                                    className={
+                                                        step === 'review' ? 'inline-flex items-center gap-2' : 'hidden'
+                                                    }
+                                                >
+                                                    <span
+                                                        aria-hidden
+                                                        className={`inline-block size-4 shrink-0 rounded-full border-2 border-current border-t-transparent ${
+                                                            isLoading ? 'animate-spin opacity-90' : 'hidden'
+                                                        }`}
+                                                    />
+                                                    <span className={isLoading ? 'hidden' : 'opacity-90'} aria-hidden>
+                                                        ✓
                                                     </span>
-                                                )}
-                                            </button>
-                                        )}
+                                                    <span>
+                                                        {isLoading
+                                                            ? editingProject
+                                                                ? 'Modification...'
+                                                                : 'Création...'
+                                                            : editingProject
+                                                              ? 'Enregistrer'
+                                                              : 'Créer le projet'}
+                                                    </span>
+                                                </span>
+                                            </span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>

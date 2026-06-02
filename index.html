@@ -9,6 +9,8 @@
 </head>
   <body>
     <div id="root"></div>
+    <!-- Portail React dédié (évite conflits removeChild avec extensions / nœuds injectés sur body) -->
+    <div id="coya-modal-root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

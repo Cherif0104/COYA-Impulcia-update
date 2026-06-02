@@ -113,8 +113,17 @@ export const translations: Translations = {
     mobility_readonly_submitted: "Submitted — read only.",
     mobility_link_project_workspace: "Mobility",
     mobility_link_programme_detail: "Mobility (filtered by programme)",
-    mobility_suite_banner_parc: "Following your choice in Mobility request — start a vehicle request below.",
-    mobility_suite_banner_logistique: "Following your choice in Mobility request — create a logistics request below.",
+    mobility_suite_banner_parc:
+      "You were routed here from Mobility request: complete a fleet vehicle request below. Counters here are vehicle requests, not mobility portal drafts.",
+    mobility_suite_banner_logistique:
+      "You were routed here from Mobility request: create or continue an equipment / logistics request below. This screen is execution, not the orientation portal.",
+    mobility_suite_back_to_portal: "Back to Mobility request portal",
+    mobility_exec_hint_parc:
+      "Mobility request = orientation portal (draft, internal vs external). Fleet = execution — vehicle requests are listed below.",
+    mobility_exec_hint_logistique:
+      "Mobility request = orientation portal. Logistics = execution — equipment requests below.",
+    mobility_hub_portal_scope:
+      "After submit, processing continues in Fleet or Logistics. Lists there are operational requests, not the same rows as drafts in this portal.",
     courses: "Courses",
     jobs: "Jobs",
     settings: "Settings",
@@ -1265,8 +1274,17 @@ export const translations: Translations = {
     mobility_readonly_submitted: "Soumis — lecture seule.",
     mobility_link_project_workspace: "Mobilité",
     mobility_link_programme_detail: "Mobilité (filtrée sur ce programme)",
-    mobility_suite_banner_parc: "Suite à votre choix « Demande mobilité » : complétez une demande véhicule ci-dessous.",
-    mobility_suite_banner_logistique: "Suite à votre choix « Demande mobilité » : créez une demande logistique ci-dessous.",
+    mobility_suite_banner_parc:
+      "Vous arrivez depuis « Demande mobilité » : saisissez ou poursuivez une demande véhicule (parc / flotte) ci-dessous. Les compteurs comptent les demandes véhicule, pas les brouillons du portail mobilité.",
+    mobility_suite_banner_logistique:
+      "Vous arrivez depuis « Demande mobilité » : créez ou poursuivez une demande logistique (équipement) ci-dessous. Ce module est l’exécution, pas le portail d’orientation.",
+    mobility_suite_back_to_portal: "Retour au portail Demande mobilité",
+    mobility_exec_hint_parc:
+      "Demande mobilité = portail unique d’orientation (brouillon, choix interne / externe). Parc auto = exécution flotte : les « demandes véhicule » sont listées plus bas.",
+    mobility_exec_hint_logistique:
+      "Demande mobilité = portail d’orientation. Logistique = exécution : les demandes équipement sont gérées ici.",
+    mobility_hub_portal_scope:
+      "Après soumission, le traitement se poursuit dans Parc auto ou Logistique. Les listes de ces modules sont des demandes opérationnelles, distinctes des brouillons de ce portail.",
     courses: "APEX",
     jobs: "Emplois",
     settings: "Paramètres",

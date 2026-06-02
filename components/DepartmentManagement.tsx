@@ -66,7 +66,7 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({
     }
   }, [canReadModule]);
 
-  const REQUIRED_DEPT_MODULE_COUNT = 2;
+  const MIN_DEPT_MODULE_COUNT = 1;
 
   const loadOrganizationAndDepartments = async () => {
     try {
@@ -101,9 +101,9 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({
   };
 
   const validateModuleSlugs = (): boolean => {
-    if (formData.moduleSlugs.length !== REQUIRED_DEPT_MODULE_COUNT) {
+    if (formData.moduleSlugs.length < MIN_DEPT_MODULE_COUNT) {
       alert(
-        `Chaque département doit avoir exactement ${REQUIRED_DEPT_MODULE_COUNT} modules actifs (politique plateforme). Sélectionnez ${REQUIRED_DEPT_MODULE_COUNT} cases.`
+        `Chaque département doit avoir au moins ${MIN_DEPT_MODULE_COUNT} module actif. Sélectionnez au moins une case.`
       );
       return false;
     }
@@ -351,7 +351,7 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({
       >
         <p className={`text-slate-600 ${isEmbedded ? 'text-xs leading-relaxed' : 'text-sm'}`}>
           <strong className="text-slate-800">CRUD :</strong> consulter la fiche, créer, modifier, activer/désactiver, supprimer. Chaque département a{' '}
-          <strong>{REQUIRED_DEPT_MODULE_COUNT} modules</strong> obligatoires et une <strong>équipe</strong> (≥ 2 personnes, 1 superviseur, ≥ 1 manager) via « Équipe ».
+          <strong>au moins un module</strong> actif et une <strong>équipe</strong> (≥ 2 personnes, 1 superviseur, ≥ 1 manager) via « Équipe ».
         </p>
       </div>
 
@@ -605,9 +605,9 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Modules autorisés (exactement {REQUIRED_DEPT_MODULE_COUNT})
+                  Modules autorisés (au moins un)
                 </label>
-                <p className="mb-2 text-xs text-amber-800">Sélection obligatoire : {REQUIRED_DEPT_MODULE_COUNT} modules.</p>
+                <p className="mb-2 text-xs text-amber-800">Cochez ou décochez librement les modules : au moins un module doit rester actif.</p>
                 <div className="grid max-h-48 grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/50 p-3 sm:grid-cols-2">
                   {ALL_MODULE_NAMES.map((slug) => (
                     <label key={slug} className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-2 py-1.5 shadow-sm">

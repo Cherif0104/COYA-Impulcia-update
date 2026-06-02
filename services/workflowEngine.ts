@@ -200,7 +200,6 @@ export const runWorkflowCycle = (input: WorkflowCycleInput): WorkflowCycleOutput
 
   input.projects.forEach((project) => {
     const teamUserIds = getUserIdsFromProject(project);
-    let hasTaskMutation = false;
     const nextTasks = (project.tasks || []).map((task) => {
       const due = safeDate(task.dueDate);
       if (!due || task.status === 'Completed') return task;
@@ -235,11 +234,6 @@ export const runWorkflowCycle = (input: WorkflowCycleInput): WorkflowCycleOutput
           targetUserIds: targetIds,
           metadata: { projectId: project.id, taskId: task.id, dueDate: task.dueDate },
         });
-
-        if (autoFreezeOverdueTasks && !task.isFrozen) {
-          hasTaskMutation = true;
-          return { ...task, isFrozen: true };
-        }
       } else if (delta <= alertDelayDays) {
         actions.push({
           eventId: `task_due_soon:${project.id}:${task.id}:${task.dueDate}:${delta}`,
@@ -256,21 +250,7 @@ export const runWorkflowCycle = (input: WorkflowCycleInput): WorkflowCycleOutput
       return task;
     });
 
-    if (hasTaskMutation) {
-      const updatedProject: Project = { ...project, tasks: nextTasks };
-      updatedProjectsMap.set(String(project.id), updatedProject);
-      actions.push({
-        eventId: `project_tasks_frozen:${project.id}:${now.toISOString().slice(0, 10)}`,
-        type: 'project_update',
-        module: 'projects',
-        severity: 'warning',
-        message: `Gel automatique appliqué aux tâches en retard (${project.title})`,
-        entityType: 'project',
-        entityId: String(project.id),
-        targetUserIds: Array.from(new Set([...teamUserIds, ...managerIds])),
-        metadata: { projectId: project.id },
-      });
-    }
+    // Neutralisé : pas de mutation projet/tâche dans workflowEngine (alerting only).
 
     const budgetLines = project.budgetLines || [];
     if (budgetLines.length > 0) {

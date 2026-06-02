@@ -7,6 +7,7 @@
 import type { Objective, Project, Task, TimeLog } from '../types';
 import { computeProjectInsights } from '../utils/projectInsights';
 import { applyProjectTasksAutoClose, getTaskGovernance, isTaskScheduledFrozen } from '../utils/projectTaskLifecycle';
+import { normalizeTaskStatus } from '../utils/taskStatus';
 
 export type CockpitAlert = {
   id: string;
@@ -60,7 +61,7 @@ export function buildProjectCockpitReadModel(
   const insights = computeProjectInsights(governedProject);
 
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t) => t.status === 'Completed').length;
+  const completedTasks = tasks.filter((t) => normalizeTaskStatus(t.status) === 'done').length;
   const ymd = todayYmd();
 
   let overdueTaskCount = 0;
@@ -69,7 +70,7 @@ export function buildProjectCockpitReadModel(
   for (const t of tasks) {
     const g = getTaskGovernance(t);
     if (g === 'not_realized') notRealizedCount += 1;
-    if (t.status !== 'Completed') {
+    if (normalizeTaskStatus(t.status) !== 'done') {
       const end = t.periodEnd || t.dueDate;
       if (end && String(end).slice(0, 10) < ymd) overdueTaskCount += 1;
     }
@@ -98,7 +99,7 @@ export function buildProjectCockpitReadModel(
   const objectivesCount = objectives.filter((o) => String(o.projectId) === String(project.id)).length;
 
   const nextTasks: CockpitNextTask[] = [...tasks]
-    .filter((t) => t.status !== 'Completed')
+    .filter((t) => normalizeTaskStatus(t.status) !== 'done')
     .sort((a, b) => {
       const ad = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
       const bd = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
@@ -153,7 +154,7 @@ export function buildProjectCockpitReadModel(
     });
   }
 
-  const openTaskCount = tasks.filter((t) => t.status !== 'Completed').length;
+  const openTaskCount = tasks.filter((t) => normalizeTaskStatus(t.status) !== 'done').length;
   const teamSize = Math.max(1, (project.team || []).length);
   const teamLoadOpenTasksPerMember = openTaskCount / teamSize;
 
