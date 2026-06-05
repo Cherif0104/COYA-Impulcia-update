@@ -1,6 +1,7 @@
 import { supabase } from './supabaseService';
 import { RealtimeService } from './realtimeService';
 import { DataService } from './dataService';
+import { triggerNotification as novuTrigger } from './novuService';
 
 export interface Notification {
   id: string;
@@ -132,7 +133,7 @@ export class NotificationService {
       if (insErr) throw insErr;
       const createdAt = (ins as { created_at?: string })?.created_at || new Date().toISOString();
       const resolvedUserId = (ins as { user_id?: string })?.user_id || userId;
-      return {
+      const notification: Notification = {
         id: '',
         userId: resolvedUserId,
         type,
@@ -149,6 +150,19 @@ export class NotificationService {
         metadata: options?.metadata,
         createdAt,
       };
+
+      // Déclencher Novu en parallèle (fire-and-forget, ne bloque pas la notification Supabase)
+      novuTrigger(`coya.${module}.${action}`, userId, {
+        title,
+        message,
+        entityType: options?.entityType,
+        entityId: options?.entityId,
+        entityTitle: options?.entityTitle,
+      }).catch(() => {
+        // Novu est optionnel — une erreur ne doit pas faire échouer la notification
+      });
+
+      return notification;
     } catch (error: any) {
       console.error('Erreur création notification:', error);
       return null;

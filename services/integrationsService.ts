@@ -1,6 +1,22 @@
 import { supabase } from './supabaseService';
 
-export type ExternalIntegrationProvider = 'atlassian' | 'monday' | 'google_drive' | 'odoo_sync' | 'other';
+export type ExternalIntegrationProvider =
+  | 'atlassian'
+  | 'monday'
+  | 'google_drive'
+  | 'odoo_sync'
+  | 'hubspot'
+  | 'daily_co'
+  | 'agora'
+  | 'twilio'
+  | 'novu'
+  | 'yousign'
+  | 'formbricks'
+  | 'cal_com'
+  | 'meta'
+  | 'resend'
+  | 'other';
+
 export type ExternalIntegrationStatus = 'inactive' | 'active' | 'error';
 
 export type ExternalIntegration = {
@@ -14,16 +30,16 @@ export type ExternalIntegration = {
   updatedAt: string;
 };
 
-function mapRow(row: any): ExternalIntegration {
+function mapRow(row: Record<string, unknown>): ExternalIntegration {
   return {
-    id: row.id,
-    organizationId: row.organization_id,
-    provider: row.provider,
-    status: row.status,
-    displayName: row.display_name ?? null,
-    config: row.config ?? {},
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id: row.id as string,
+    organizationId: row.organization_id as string,
+    provider: row.provider as ExternalIntegrationProvider,
+    status: row.status as ExternalIntegrationStatus,
+    displayName: (row.display_name as string | null) ?? null,
+    config: (row.config as Record<string, unknown>) ?? {},
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
   };
 }
 
@@ -44,7 +60,7 @@ export async function upsertIntegration(input: {
   displayName?: string | null;
   config?: Record<string, unknown>;
 }): Promise<ExternalIntegration> {
-  const payload: any = {
+  const payload = {
     organization_id: input.organizationId,
     provider: input.provider,
     status: input.status ?? 'inactive',
@@ -61,3 +77,16 @@ export async function upsertIntegration(input: {
   return mapRow(data);
 }
 
+export async function getIntegration(
+  organizationId: string,
+  provider: ExternalIntegrationProvider,
+): Promise<ExternalIntegration | null> {
+  const { data, error } = await supabase
+    .from('coya_external_integrations')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .eq('provider', provider)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data) : null;
+}

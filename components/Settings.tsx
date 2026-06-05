@@ -23,6 +23,7 @@ import {
   NAV_SESSION_CRM_OPEN_COLLECTE_TAB,
 } from '../contexts/AppNavigationContext';
 import ModuleRichHub from './common/ModuleRichHub';
+import IntegrationsSettingsPage from './admin/IntegrationsSettingsPage';
 
 interface SettingsProps {
   reminderDays: number;
@@ -79,6 +80,7 @@ type AdminPageId =
   | 'platform_dashboard'
   | 'platform_projects'
   | 'platform_automation'
+  | 'integrations'
   | 'organization_management'
   | 'department_management'
   | 'postes_management'
@@ -158,6 +160,7 @@ const Settings: React.FC<SettingsProps> = ({
         { id: 'platform_dashboard', labelFr: 'Widgets tableau de bord', labelEn: 'Dashboard widgets', icon: 'fas fa-th-large', groupFr: 'Plateforme', groupEn: 'Platform' },
         { id: 'platform_projects', labelFr: 'Module Projets', labelEn: 'Projects module', icon: 'fas fa-project-diagram', groupFr: 'Plateforme', groupEn: 'Platform' },
         { id: 'platform_automation', labelFr: 'Automatisation & observabilité', labelEn: 'Automation & observability', icon: 'fas fa-robot', groupFr: 'Plateforme', groupEn: 'Platform' },
+        { id: 'integrations', labelFr: 'Intégrations externes', labelEn: 'External integrations', icon: 'fas fa-plug', groupFr: 'Plateforme', groupEn: 'Platform' },
       );
     }
 
@@ -193,7 +196,7 @@ const Settings: React.FC<SettingsProps> = ({
     return items;
   }, [isSuperAdmin, isAdminOrSuper, canAccessModule]);
 
-  const showAdminTab = isSuperAdmin || adminNavItems.some((i) => !['platform_labels', 'platform_dashboard', 'platform_projects', 'platform_automation'].includes(i.id));
+  const showAdminTab = isSuperAdmin || adminNavItems.some((i) => !['platform_labels', 'platform_dashboard', 'platform_projects', 'platform_automation', 'integrations'].includes(i.id));
 
   useEffect(() => {
     if (settingsTab !== 'admin' || adminNavItems.length === 0) return;
@@ -341,6 +344,8 @@ const Settings: React.FC<SettingsProps> = ({
             )}
           </div>
         );
+      case 'integrations':
+        return <IntegrationsSettingsPage />;
       case 'organization_management':
         return <OrganizationManagement />;
       case 'department_management':

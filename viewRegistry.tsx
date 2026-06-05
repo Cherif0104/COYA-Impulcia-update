@@ -9,7 +9,6 @@ import TriniteModule from './components/TriniteModule';
 import LogistiqueModule from './components/LogistiqueModule';
 import ParcAutoModule from './components/ParcAutoModule';
 import MobiliteRequestHub from './components/MobiliteRequestHub';
-import TicketITModule from './components/TicketITModule';
 import MessagerieModule from './components/MessagerieModule';
 import StudioModule from './components/modules/studio/StudioModule';
 export type ViewName = string;
@@ -21,7 +20,6 @@ const MODULE_VIEWS: Record<string, React.ComponentType<{}>> = {
   studio: StudioModule,
   parc_auto: ParcAutoModule,
   demande_mobilite: MobiliteRequestHub,
-  ticket_it: TicketITModule,
   messagerie: MessagerieModule,
 };
 
