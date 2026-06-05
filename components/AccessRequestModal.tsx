@@ -58,7 +58,7 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
     setSuccess(false);
   }, [isOpen, defaultOrganizationId]);
 
-  // Cascade : charger les piliers (départements) de l'organisation sélectionnée
+  // Cascade : départements de l'org choisie, repli sur tous les départements actifs si liste vide
   useEffect(() => {
     if (!isOpen) return;
     setDepartmentId('');
@@ -68,11 +68,16 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
     (async () => {
       try {
         setDepartmentsLoading(true);
-        const list = await DepartmentService.getDepartmentsByOrganizationId(organizationId);
-        if (!cancelled) setDepartments(list.filter((d) => d.isActive !== false));
+        const orgList = await DepartmentService.getDepartmentsByOrganizationId(organizationId);
+        let active = orgList.filter((d) => d.isActive !== false);
+        if (active.length === 0) {
+          const fallback = await DepartmentService.getActiveDepartments();
+          active = fallback.filter((d) => d.isActive !== false);
+        }
+        if (!cancelled) setDepartments(active);
       } catch (e) {
         if (!cancelled) setDepartments([]);
-        console.warn('⚠️ Chargement des piliers (non bloquant):', e);
+        console.warn('⚠️ Chargement des départements (non bloquant):', e);
       } finally {
         if (!cancelled) setDepartmentsLoading(false);
       }
@@ -82,7 +87,7 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
     };
   }, [isOpen, organizationId]);
 
-  const pilierEnabled = useMemo(
+  const departmentSelectEnabled = useMemo(
     () => Boolean(organizationId) && !departmentsLoading && departments.length > 0,
     [organizationId, departmentsLoading, departments.length],
   );
@@ -97,8 +102,8 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
     if (!phone.trim()) return 'Veuillez saisir un numéro de téléphone.';
     if (!poste.trim()) return 'Veuillez préciser le poste / la fonction souhaitée.';
     if (!organizationId) return 'Veuillez sélectionner une organisation.';
-    // Le pilier est obligatoire dès qu'au moins un pilier existe pour l'organisation.
-    if (departments.length > 0 && !departmentId) return 'Veuillez sélectionner un pilier.';
+    // Le département est obligatoire dès qu'au moins un département est disponible.
+    if (departments.length > 0 && !departmentId) return 'Veuillez sélectionner un département (pilier).';
     return null;
   };
 
@@ -133,7 +138,7 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
           normalized.includes('duplicate') ||
           normalized.includes('user already')
         ) {
-          setError('Un compte existe déjà pour cette adresse e-mail. Essayez de vous connecter ou utilisez « Mot de passe oublié ».');
+          setError('Un compte existe déjà pour cette adresse e-mail. Essayez de vous connecter ou contactez un administrateur.');
         } else {
           setError(raw || 'Une erreur est survenue. Veuillez réessayer plus tard.');
         }
@@ -180,7 +185,7 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
             </p>
             <p className="text-xs text-white/60 mb-5">
               Après validation par un administrateur, votre compte sera activé avec un mot de passe par défaut qui vous
-              sera communiqué. Vous pourrez ensuite le modifier dans Paramètres → Profil (ou via « Mot de passe oublié »).
+              sera communiqué. Vous pourrez ensuite le modifier dans Paramètres → Profil.
             </p>
             <Button type="button" className="w-full" onClick={onClose}>
               Fermer
@@ -298,23 +303,23 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
 
               <div>
                 <label htmlFor="ar-pilier" className={labelClass}>
-                  Pilier <span className="text-red-300">*</span>
+                  Département (pilier) <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="ar-pilier"
                   value={departmentId}
                   onChange={(e) => setDepartmentId(e.target.value)}
                   className={selectClass}
-                  disabled={!pilierEnabled}
+                  disabled={!departmentSelectEnabled}
                 >
                   <option value="">
                     {!organizationId
                       ? '— Sélectionnez d’abord une organisation —'
                       : departmentsLoading
-                        ? 'Chargement des piliers…'
+                        ? 'Chargement des départements…'
                         : departments.length === 0
-                          ? 'Aucun pilier disponible'
-                          : '— Sélectionner un pilier —'}
+                          ? 'Aucun département disponible'
+                          : '— Sélectionner un département —'}
                   </option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -324,7 +329,7 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
                 </select>
                 {organizationId && !departmentsLoading && departments.length === 0 ? (
                   <p className="mt-1 text-xs text-white/55">
-                    Aucun pilier n’est disponible pour cette organisation : votre demande sera transmise sans pilier et un
+                    Aucun département n’est disponible pour le moment : votre demande sera transmise sans département et un
                     administrateur l’affectera à la validation.
                   </p>
                 ) : null}

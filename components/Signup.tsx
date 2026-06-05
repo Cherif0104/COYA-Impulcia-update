@@ -199,7 +199,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
     // On utilise SENEGEL par défaut; si une autre organisation est saisie,
     // l'alignement sera fait à la première connexion (Login harmonise déjà)
     const targetName = (organizationName || 'SENEGEL').trim();
-    const SENEGEL_ORG_ID = '550e8400-e29b-41d4-a716-446655440000';
+    const SENEGEL_ORG_ID = 'fb782f1a-ee3c-4665-99f2-baec16687fe1';
     const organizationIdToUse = targetName.toLowerCase() === 'senegel' ? SENEGEL_ORG_ID : SENEGEL_ORG_ID;
 
     logger.logAuth('Tentative inscription', { email, role, organizationName: targetName });

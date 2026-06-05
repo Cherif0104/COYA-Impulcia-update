@@ -11,7 +11,7 @@
  * (départements, utilisateurs, modules) avec contenu isolé par `organization_id` (pas de stats agrégées côté
  * liste admin pour les tenants hébergés).
  */
-export const DEFAULT_PRIMARY_ORGANIZATION_ID = '550e8400-e29b-41d4-a716-446655440000';
+export const DEFAULT_PRIMARY_ORGANIZATION_ID = 'fb782f1a-ee3c-4665-99f2-baec16687fe1';
 
 export function getPrimaryOrganizationId(): string {
   const fromEnv = typeof import.meta.env !== 'undefined' ? import.meta.env.VITE_PRIMARY_ORGANIZATION_ID : undefined;

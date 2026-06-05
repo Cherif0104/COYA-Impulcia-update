@@ -86,6 +86,37 @@ export function validateDepartmentMemberDraft(
 
 export class DepartmentService {
   /**
+   * Tous les départements actifs (lecture publique via RLS departments_select_public_active).
+   * Utilisé en repli sur le formulaire « Devenir utilisateur » si l'org choisie n'a pas de piliers.
+   */
+  static async getActiveDepartments(): Promise<Department[]> {
+    if (isTableUnavailable('departments')) return [];
+    try {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*')
+        .eq('is_active', true)
+        .order('sequence', { ascending: true })
+        .order('name', { ascending: true });
+
+      if (error) {
+        if (handleOptionalTableError(error, 'departments', 'DepartmentService.getActiveDepartments')) {
+          return [];
+        }
+        console.error('❌ Erreur getActiveDepartments:', error);
+        return [];
+      }
+      return (data || []).map(mapRowToDepartment);
+    } catch (error) {
+      if (handleOptionalTableError(error, 'departments', 'DepartmentService.getActiveDepartments.catch')) {
+        return [];
+      }
+      console.error('❌ Erreur getActiveDepartments:', error);
+      return [];
+    }
+  }
+
+  /**
    * Liste des départements d'une organisation
    */
   static async getDepartmentsByOrganizationId(organizationId: string): Promise<Department[]> {

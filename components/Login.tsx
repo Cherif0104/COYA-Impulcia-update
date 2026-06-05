@@ -26,11 +26,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
   const [emailError, setEmailError] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
-  const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
-  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
-  const [forgotPasswordError, setForgotPasswordError] = useState('');
   const { signIn } = useAuth();
   const { t } = useLocalization();
   const [isAssistantOpen, setAssistantOpen] = useState(false);
@@ -192,35 +187,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
     setAssistantOpen(true);
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!forgotPasswordEmail.trim()) return;
-    setForgotPasswordLoading(true);
-    setForgotPasswordError('');
-    setForgotPasswordSent(false);
-    try {
-      // PB5 : plus d'e-mail de réinitialisation Supabase. On notifie les administrateurs via la
-      // RPC SECURITY DEFINER `request_password_reset` (anti-énumération : renvoie toujours sans
-      // erreur, qu'un compte existe ou non). L'admin générera ensuite un mot de passe générique.
-      const { supabase } = await import('../services/supabaseService');
-      const { error: err } = await supabase.rpc('request_password_reset', {
-        p_email: forgotPasswordEmail.trim(),
-      });
-      if (err) {
-        // En cas d'erreur technique inattendue, on reste générique (pas de divulgation).
-        console.error('Erreur demande de réinitialisation:', err);
-      }
-      // Message identique quel que soit le cas (le compte existe ou non).
-      setForgotPasswordSent(true);
-    } catch (err: any) {
-      console.error('Erreur demande de réinitialisation:', err);
-      // On affiche tout de même le message générique de succès (anti-énumération).
-      setForgotPasswordSent(true);
-    } finally {
-      setForgotPasswordLoading(false);
-    }
-  };
-
   return (
     <>
       {/* Page de connexion uniquement : plein écran, jamais affichée si déjà connecté (géré par App). */}
@@ -350,7 +316,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
                       />
                     </div>
 
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center">
                       <label className="inline-flex items-center gap-2 text-sm text-white/70 select-none">
                         <input
                           type="checkbox"
@@ -360,13 +326,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
                         />
                         Se souvenir de moi
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => setForgotPasswordOpen(true)}
-                        className="text-sm font-medium text-white/80 hover:text-white underline-offset-4 hover:underline"
-                      >
-                        Mot de passe oublié
-                      </button>
                     </div>
 
                     <div className="pt-2 space-y-2">
@@ -472,55 +431,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToSignup }) => {
             </div>
           </div>
         </>
-      )}
-
-      {/* Modal Mot de passe oublié – charte COYA */}
-      {forgotPasswordOpen && (
-        <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 font-coya">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => { setForgotPasswordOpen(false); setForgotPasswordError(''); setForgotPasswordSent(false); }}
-            aria-hidden
-          />
-          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-white/10 backdrop-blur-xl p-6 shadow-[0_30px_90px_rgba(0,0,0,0.30)]" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-3">Mot de passe oublié</h3>
-            {forgotPasswordSent ? (
-              <p className="text-sm text-white/80 mb-4">
-                Si un compte existe pour cet email, votre demande a été transmise à un administrateur. Il vous communiquera un nouveau mot de passe que vous pourrez ensuite modifier dans Paramètres → Profil.
-              </p>
-            ) : (
-              <form onSubmit={handleForgotPassword} className="space-y-3">
-                <p className="text-sm text-white/70">
-                  Saisissez votre adresse e-mail : votre demande sera transmise à un administrateur qui vous fournira un nouveau mot de passe.
-                </p>
-                <label htmlFor="forgot-email" className="block text-sm font-medium text-white/85">Adresse e-mail</label>
-                <Input
-                  id="forgot-email"
-                  type="email"
-                  required
-                  value={forgotPasswordEmail}
-                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                  className="bg-white/90 border-white/15 focus:border-white/30 focus:ring-white/10"
-                  placeholder={t('signup_email_placeholder')}
-                />
-                {forgotPasswordError && <p className="text-sm text-red-100">{forgotPasswordError}</p>}
-                <div className="flex gap-2 justify-end pt-2">
-                  <Button type="button" variant="secondary" onClick={() => { setForgotPasswordOpen(false); setForgotPasswordError(''); }}>
-                    Annuler
-                  </Button>
-                  <Button type="submit" disabled={forgotPasswordLoading}>
-                    {forgotPasswordLoading ? t('login_loading') : 'Envoyer la demande'}
-                  </Button>
-                </div>
-              </form>
-            )}
-            {forgotPasswordSent && (
-              <Button type="button" className="mt-2 w-full" onClick={() => { setForgotPasswordOpen(false); setForgotPasswordSent(false); }}>
-                Fermer
-              </Button>
-            )}
-          </div>
-        </div>
       )}
 
     </>
