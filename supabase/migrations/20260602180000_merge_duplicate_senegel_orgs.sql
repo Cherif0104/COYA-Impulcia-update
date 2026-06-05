@@ -1,4 +1,4 @@
--- Fusion des deux organisations « SENEGEL » en doublon.
+-- Fusion des deux organisations « SENEGEL » en doublon (idempotent).
 --
 -- SOURCE (legacy / doublon, sans piliers) : 550e8400-e29b-41d4-a716-446655440000
 -- CIBLE (canonique, PILIER 1/2/3 + majorité des profils) : fb782f1a-ee3c-4665-99f2-baec16687fe1
@@ -19,47 +19,44 @@ DECLARE
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.organizations WHERE id = v_source) THEN
     RAISE NOTICE 'Organisation source déjà absente — migration idempotente.';
-    RETURN;
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM public.organizations WHERE id = v_target) THEN
-    RAISE EXCEPTION 'Organisation cible SENEGEL canonique introuvable: %', v_target;
-  END IF;
-
-  -- Backup logique (comptages avant fusion)
-  RAISE NOTICE 'Fusion SENEGEL: source=% target=%', v_source, v_target;
-  FOR r IN
-    SELECT c.table_name
-    FROM information_schema.columns c
-    JOIN information_schema.tables t
-      ON t.table_schema = c.table_schema AND t.table_name = c.table_name
-    WHERE c.table_schema = 'public'
-      AND c.column_name = 'organization_id'
-      AND t.table_type = 'BASE TABLE'
-      AND c.table_name <> 'organizations'
-  LOOP
-    EXECUTE format(
-      'SELECT COUNT(*) FROM public.%I WHERE organization_id = $1',
-      r.table_name
-    ) INTO v_cnt USING v_source;
-    IF v_cnt > 0 THEN
-      RAISE NOTICE '  % : % ligne(s) à migrer', r.table_name, v_cnt;
-      EXECUTE format(
-        'UPDATE public.%I SET organization_id = $1 WHERE organization_id = $2',
-        r.table_name
-      ) USING v_target, v_source;
+  ELSE
+    IF NOT EXISTS (SELECT 1 FROM public.organizations WHERE id = v_target) THEN
+      RAISE EXCEPTION 'Organisation cible SENEGEL canonique introuvable: %', v_target;
     END IF;
-  END LOOP;
+
+    RAISE NOTICE 'Fusion SENEGEL: source=% target=%', v_source, v_target;
+    FOR r IN
+      SELECT c.table_name
+      FROM information_schema.columns c
+      JOIN information_schema.tables t
+        ON t.table_schema = c.table_schema AND t.table_name = c.table_name
+      WHERE c.table_schema = 'public'
+        AND c.column_name = 'organization_id'
+        AND t.table_type = 'BASE TABLE'
+        AND c.table_name <> 'organizations'
+    LOOP
+      EXECUTE format(
+        'SELECT COUNT(*) FROM public.%I WHERE organization_id = $1',
+        r.table_name
+      ) INTO v_cnt USING v_source;
+      IF v_cnt > 0 THEN
+        RAISE NOTICE '  % : % ligne(s) à migrer', r.table_name, v_cnt;
+        EXECUTE format(
+          'UPDATE public.%I SET organization_id = $1 WHERE organization_id = $2',
+          r.table_name
+        ) USING v_target, v_source;
+      END IF;
+    END LOOP;
+  END IF;
 END $$;
 
--- Canonique : slug + actif
+-- Canonique : slug + actif + unicité du nom actif
 UPDATE public.organizations
 SET slug = COALESCE(NULLIF(trim(slug), ''), 'senegel'),
     is_active = true,
     name = 'SENEGEL'
 WHERE id = 'fb782f1a-ee3c-4665-99f2-baec16687fe1';
 
--- Legacy : désactivation (conserve l'historique, évite DELETE si FK résiduelles)
 UPDATE public.organizations
 SET is_active = false,
     slug = COALESCE(NULLIF(trim(slug), ''), 'senegel-legacy-merged'),

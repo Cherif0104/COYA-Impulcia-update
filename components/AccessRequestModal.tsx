@@ -58,22 +58,25 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
     setSuccess(false);
   }, [isOpen, defaultOrganizationId]);
 
-  // Cascade : départements de l'org choisie, repli sur tous les départements actifs si liste vide
+  const orgNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    organizations.forEach((o) => map.set(o.id, o.name));
+    return map;
+  }, [organizations]);
+
+  const formatDepartmentLabel = (dept: Department): string => {
+    const orgName = orgNameById.get(dept.organizationId);
+    return orgName && orgName !== dept.name ? `${dept.name} — ${orgName}` : dept.name;
+  };
+
+  // Tous les départements actifs de la plateforme (indépendamment de l'organisation choisie)
   useEffect(() => {
     if (!isOpen) return;
-    setDepartmentId('');
-    setDepartments([]);
-    if (!organizationId) return;
     let cancelled = false;
     (async () => {
       try {
         setDepartmentsLoading(true);
-        const orgList = await DepartmentService.getDepartmentsByOrganizationId(organizationId);
-        let active = orgList.filter((d) => d.isActive !== false);
-        if (active.length === 0) {
-          const fallback = await DepartmentService.getActiveDepartments();
-          active = fallback.filter((d) => d.isActive !== false);
-        }
+        const active = (await DepartmentService.getActiveDepartments()).filter((d) => d.isActive !== false);
         if (!cancelled) setDepartments(active);
       } catch (e) {
         if (!cancelled) setDepartments([]);
@@ -85,11 +88,11 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, organizationId]);
+  }, [isOpen]);
 
   const departmentSelectEnabled = useMemo(
-    () => Boolean(organizationId) && !departmentsLoading && departments.length > 0,
-    [organizationId, departmentsLoading, departments.length],
+    () => !departmentsLoading && departments.length > 0,
+    [departmentsLoading, departments.length],
   );
 
   if (!isOpen) return null;
@@ -313,21 +316,19 @@ const AccessRequestModal: React.FC<AccessRequestModalProps> = ({
                   disabled={!departmentSelectEnabled}
                 >
                   <option value="">
-                    {!organizationId
-                      ? '— Sélectionnez d’abord une organisation —'
-                      : departmentsLoading
-                        ? 'Chargement des départements…'
-                        : departments.length === 0
-                          ? 'Aucun département disponible'
-                          : '— Sélectionner un département —'}
+                    {departmentsLoading
+                      ? 'Chargement des départements…'
+                      : departments.length === 0
+                        ? 'Aucun département disponible'
+                        : '— Sélectionner un département —'}
                   </option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.name}
+                      {formatDepartmentLabel(d)}
                     </option>
                   ))}
                 </select>
-                {organizationId && !departmentsLoading && departments.length === 0 ? (
+                {!departmentsLoading && departments.length === 0 ? (
                   <p className="mt-1 text-xs text-white/55">
                     Aucun département n’est disponible pour le moment : votre demande sera transmise sans département et un
                     administrateur l’affectera à la validation.
